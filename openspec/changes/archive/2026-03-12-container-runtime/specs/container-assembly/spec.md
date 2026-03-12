@@ -1,0 +1,67 @@
+## ADDED Requirements
+
+### Requirement: Container naming
+Container name SHALL be `asylum-<sha256(project_dir)[:12]>` and hostname SHALL be `asylum-<project_basename>`.
+
+#### Scenario: Naming from project path
+- **WHEN** the project directory is `/home/user/code/myapp`
+- **THEN** the container name is `asylum-` followed by the first 12 chars of the SHA256 of that path, and hostname is `asylum-myapp`
+
+### Requirement: Common volume mounts
+The container SHALL include all common mounts from PLAN.md section 5.3: project dir at real path, gitconfig, ssh, caches, history, custom volumes, and direnv.
+
+#### Scenario: All common mounts present
+- **WHEN** gitconfig exists, ssh dir exists, and project has .envrc
+- **THEN** all conditional mounts are included in the args
+
+#### Scenario: Missing optional paths
+- **WHEN** gitconfig and ssh dir do not exist
+- **THEN** those mounts are omitted, all others remain
+
+### Requirement: Agent-specific mounts and env vars
+The container SHALL mount the agent's asylum config dir and set agent-specific env vars.
+
+#### Scenario: Claude agent
+- **WHEN** agent is claude
+- **THEN** `~/.asylum/agents/claude/` is mounted at `/home/claude/.claude` and `CLAUDE_CONFIG_DIR` is set
+
+### Requirement: Port forwarding
+Ports from config SHALL be mapped in docker run args.
+
+#### Scenario: Simple port
+- **WHEN** port is `3000`
+- **THEN** `-p 3000:3000` is added to args
+
+#### Scenario: Mapped port
+- **WHEN** port is `8080:80`
+- **THEN** `-p 8080:80` is added to args
+
+### Requirement: Shell mode selection
+The container command SHALL vary based on mode: agent (default), shell, admin shell, or arbitrary command.
+
+#### Scenario: Agent mode
+- **WHEN** mode is agent
+- **THEN** the agent's Command() output is used
+
+#### Scenario: Shell mode
+- **WHEN** mode is shell
+- **THEN** the container command is `/bin/zsh`
+
+#### Scenario: Admin shell mode
+- **WHEN** mode is admin shell
+- **THEN** the container command includes sudo notice and `/bin/zsh`
+
+#### Scenario: Arbitrary command
+- **WHEN** mode is command with args
+- **THEN** those args are used as the container command
+
+### Requirement: Agent config seeding
+On first run for an agent, the system SHALL copy the agent's native host config to the asylum agents directory.
+
+#### Scenario: First run with existing native config
+- **WHEN** `~/.asylum/agents/claude/` does not exist but `~/.claude/` does
+- **THEN** contents of `~/.claude/` are copied to `~/.asylum/agents/claude/`
+
+#### Scenario: First run without native config
+- **WHEN** neither `~/.asylum/agents/claude/` nor `~/.claude/` exists
+- **THEN** `~/.asylum/agents/claude/` is created empty
