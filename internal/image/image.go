@@ -10,7 +10,6 @@ import (
 	"github.com/binaryben/asylum/assets"
 	"github.com/binaryben/asylum/internal/docker"
 	"github.com/binaryben/asylum/internal/log"
-	"gopkg.in/yaml.v3"
 )
 
 const baseTag = "asylum:latest"
@@ -74,7 +73,8 @@ func EnsureProject(packages map[string][]string, version string, baseRebuilt boo
 		return baseTag, nil
 	}
 
-	hash := packagesHash(packages)
+	dockerfile := generateProjectDockerfile(packages)
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(dockerfile)))
 	tag := "asylum:proj-" + hash[:12]
 
 	existing, err := docker.InspectLabel(tag, "asylum.packages.hash")
@@ -84,8 +84,6 @@ func EnsureProject(packages map[string][]string, version string, baseRebuilt boo
 	}
 
 	log.Build("building project image...")
-
-	dockerfile := generateProjectDockerfile(packages)
 
 	tmpDir, err := os.MkdirTemp("", "asylum-proj-")
 	if err != nil {
@@ -111,10 +109,6 @@ func EnsureProject(packages map[string][]string, version string, baseRebuilt boo
 	return tag, nil
 }
 
-func packagesHash(packages map[string][]string) string {
-	data, _ := yaml.Marshal(packages)
-	return fmt.Sprintf("%x", sha256.Sum256(data))
-}
 
 func generateProjectDockerfile(packages map[string][]string) string {
 	var b strings.Builder
@@ -147,6 +141,9 @@ func generateProjectDockerfile(packages map[string][]string) string {
 			b.WriteString("RUN " + cmd + "\n")
 		}
 	}
+
+	// Ensure we always end as the non-root user
+	b.WriteString("\nUSER claude\n")
 
 	return b.String()
 }
