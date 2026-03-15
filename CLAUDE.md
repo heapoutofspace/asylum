@@ -10,10 +10,36 @@ This project uses [OpenSpec](https://openspec.dev) for structured change managem
 
 - **Go** (latest stable) — single binary, no runtime dependencies beyond Docker
 - Cross-compiled for `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`
-- Shells out to Docker CLI via `os/exec` and `syscall.Exec`
+- Shells out to Docker CLI via `os/exec` and `syscall.Exec` (process replacement)
 - Layered YAML config: `~/.asylum/config.yaml` → `$project/.asylum` → `$project/.asylum.local` → CLI flags
 - Embedded assets (Dockerfile, entrypoint.sh) via `go:embed`
+- Manual CLI argument parsing with passthrough semantics (unknown flags forwarded to agents)
 - One external dependency: `gopkg.in/yaml.v3`
+
+### Project Structure
+
+```
+cmd/asylum/main.go          CLI entry point, argument parsing, dispatch
+internal/
+  agent/                    Agent interface + Claude/Gemini/Codex implementations
+  config/                   Layered YAML config loading, merging, volume parsing
+  container/                Docker run arg assembly, volume/env/port orchestration
+  docker/                   Thin Docker CLI wrapper (build, inspect, prune)
+  image/                    Two-tier image management with hash-based rebuild detection
+  log/                      Colored terminal output (info/success/warn/error/build)
+  ssh/                      SSH directory setup and key generation
+assets/
+  Dockerfile                Container image definition (embedded via go:embed)
+  entrypoint.sh             Container startup script (embedded via go:embed)
+  assets.go                 go:embed declarations
+```
+
+### Key Behaviors
+
+- Agent config is seeded from host on first run (`~/.claude` → `~/.asylum/agents/claude/`), but resume is skipped for that first session since seeded data doesn't represent a container session.
+- Base image rebuild invalidates all project images (the `baseRebuilt` flag cascades to `EnsureProject`).
+- Container names are deterministic: `asylum-<sha256(project_dir)[:12]>`.
+- Project directory is mounted at its real host path (not `/workspace`), preserving absolute paths.
 
 ## Code Style
 
@@ -58,19 +84,17 @@ If a log line explains what is happening, any comment above that line which esse
 - Test the important logic: config merging, volume shorthand parsing, session detection, command generation, hash computation. Don't test trivial getters.
 - Use `testdata/` directories for fixture files.
 
-### Project Structure
-
-Follow the layout defined in PLAN.md section 8. `cmd/asylum/` for the entry point, `internal/` for all packages, `assets/` for embedded files.
-
 ## Dependencies
 
-Use libraries freely when they save meaningful effort. Prefer well-maintained, focused libraries over rolling your own. Some natural fits:
+Only `gopkg.in/yaml.v3` — everything else is standard library. ANSI colors are hand-rolled, CLI parsing is manual (to support passthrough semantics). Avoid adding dependencies unless they save significant effort.
 
-- `gopkg.in/yaml.v3` — YAML parsing
-- `github.com/fatih/color` or similar — colored terminal output (if simpler than hand-rolling ANSI)
-- `github.com/spf13/cobra` or `github.com/urfave/cli/v2` — CLI framework (if `flag` feels limiting)
+## CI/CD
 
-Avoid large dependency trees that pull in the world (e.g., Docker SDK when shelling out to `docker` CLI works fine).
+- **CI** (`.github/workflows/ci.yml`): Runs `go test` and `go vet` on every push/PR to main, then builds all four targets.
+- **Release** (`.github/workflows/release.yml`): Triggered by version tags (`v*`). Builds binaries with version baked in and publishes them as GitHub release assets.
+- **Install script** (`install.sh`): Detects OS/arch and downloads the correct binary from the latest GitHub release.
+
+To release: `git tag v0.x.0 && git push origin v0.x.0`
 
 ## What NOT to Do
 
