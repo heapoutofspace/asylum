@@ -121,7 +121,8 @@ RUN bash -c "source $NVM_DIR/nvm.sh && \
         prettier \
         nodemon \
         yarn \
-        pnpm"
+        pnpm \
+        @fission-ai/openspec@latest"
 
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash && \
