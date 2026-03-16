@@ -4,7 +4,7 @@ Asylum needs a Go project foundation before any features can be implemented. Thi
 
 ## What Changes
 
-- Initialize Go module (`github.com/binaryben/asylum`) with `gopkg.in/yaml.v3` dependency
+- Initialize Go module (`github.com/inventage-ai/asylum`) with `gopkg.in/yaml.v3` dependency
 - Create directory structure per PLAN.md section 8: `cmd/asylum/`, `internal/` packages, `assets/`
 - Create `Makefile` with `build`, `build-all`, `clean`, and `test` targets
 - Create minimal `main.go` that prints version

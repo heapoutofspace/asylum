@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/binaryben/asylum/assets"
-	"github.com/binaryben/asylum/internal/docker"
-	"github.com/binaryben/asylum/internal/log"
+	"github.com/inventage-ai/asylum/assets"
+	"github.com/inventage-ai/asylum/internal/docker"
+	"github.com/inventage-ai/asylum/internal/log"
 )
 
 const baseTag = "asylum:latest"

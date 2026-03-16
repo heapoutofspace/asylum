@@ -8,13 +8,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/binaryben/asylum/internal/agent"
-	"github.com/binaryben/asylum/internal/config"
-	"github.com/binaryben/asylum/internal/container"
-	"github.com/binaryben/asylum/internal/docker"
-	"github.com/binaryben/asylum/internal/image"
-	"github.com/binaryben/asylum/internal/log"
-	"github.com/binaryben/asylum/internal/ssh"
+	"github.com/inventage-ai/asylum/internal/agent"
+	"github.com/inventage-ai/asylum/internal/config"
+	"github.com/inventage-ai/asylum/internal/container"
+	"github.com/inventage-ai/asylum/internal/docker"
+	"github.com/inventage-ai/asylum/internal/image"
+	"github.com/inventage-ai/asylum/internal/log"
+	"github.com/inventage-ai/asylum/internal/ssh"
 )
 
 var version = "dev"

@@ -17,7 +17,7 @@ Asylum is a new Go CLI tool with no existing code. We need to establish the proj
 
 ## Decisions
 
-- **Module path**: `github.com/binaryben/asylum` — standard Go convention for the project
+- **Module path**: `github.com/inventage-ai/asylum` — standard Go convention for the project
 - **Version injection**: Use `-ldflags -X` to inject version at build time via Makefile. Define a `version` variable in `main.go` with a default dev value
 - **Build output**: Binaries go to `build/` directory, gitignored. `make build` produces a single binary for the current platform; `make build-all` produces all four
 - **Dependency**: Add `gopkg.in/yaml.v3` to go.mod now (needed by config system in the next change)

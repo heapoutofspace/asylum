@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-REPO="heapoutofspace/asylum"
+REPO="inventage-ai/asylum"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')

@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/binaryben/asylum/internal/agent"
-	"github.com/binaryben/asylum/internal/config"
-	"github.com/binaryben/asylum/internal/log"
+	"github.com/inventage-ai/asylum/internal/agent"
+	"github.com/inventage-ai/asylum/internal/config"
+	"github.com/inventage-ai/asylum/internal/log"
 )
 
 type Mode int

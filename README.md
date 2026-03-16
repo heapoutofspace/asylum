@@ -7,10 +7,10 @@ Asylum wraps Docker to give [Claude Code](https://claude.ai), [Gemini CLI](https
 ## Install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/heapoutofspace/asylum/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/inventage-ai/asylum/main/install.sh | sh
 ```
 
-Or download a binary from the [releases page](https://github.com/heapoutofspace/asylum/releases) and put it in your PATH.
+Or download a binary from the [releases page](https://github.com/inventage-ai/asylum/releases) and put it in your PATH.
 
 **Requires**: [Docker](https://docs.docker.com/get-docker/) installed and running.
 
@@ -163,7 +163,7 @@ Removes Asylum Docker images and optionally clears caches. Agent config (`~/.asy
 ## Building from Source
 
 ```sh
-git clone https://github.com/heapoutofspace/asylum.git
+git clone https://github.com/inventage-ai/asylum.git
 cd asylum
 make build          # Build for current platform
 make build-all      # Cross-compile all targets

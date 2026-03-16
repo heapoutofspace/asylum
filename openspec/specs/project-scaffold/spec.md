@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Go module initialization
-The project SHALL have a valid Go module at `github.com/binaryben/asylum` with `gopkg.in/yaml.v3` as a dependency.
+The project SHALL have a valid Go module at `github.com/inventage-ai/asylum` with `gopkg.in/yaml.v3` as a dependency.
 
 #### Scenario: Module is valid
 - **WHEN** `go mod tidy` is run in the project root

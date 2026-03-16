@@ -1,4 +1,4 @@
-module github.com/binaryben/asylum
+module github.com/inventage-ai/asylum
 
 go 1.26.1
 

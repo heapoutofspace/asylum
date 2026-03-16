@@ -1,6 +1,6 @@
 ## 1. Module and Dependencies
 
-- [x] 1.1 Run `go mod init github.com/binaryben/asylum` and add `gopkg.in/yaml.v3` dependency
+- [x] 1.1 Run `go mod init github.com/inventage-ai/asylum` and add `gopkg.in/yaml.v3` dependency
 - [x] 1.2 Create directory structure: `cmd/asylum/`, `internal/{agent,config,container,docker,image,log,ssh}/`, `assets/`
 
 ## 2. Build System

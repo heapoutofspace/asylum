@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/binaryben/asylum/internal/log"
+	"github.com/inventage-ai/asylum/internal/log"
 )
 
 func Init() error {
