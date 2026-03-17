@@ -48,9 +48,9 @@ if [ -f "$HOME/.sdkman/bin/sdkman-init.sh" ]; then
 fi
 
 # Create Python virtual environment if project has Python markers
-if [ ! -d "/workspace/.venv" ] && [ -f "/workspace/requirements.txt" -o -f "/workspace/pyproject.toml" -o -f "/workspace/setup.py" ]; then
+if [ -n "$HOST_PROJECT_DIR" ] && [ ! -d "$HOST_PROJECT_DIR/.venv" ] && [ -f "$HOST_PROJECT_DIR/requirements.txt" -o -f "$HOST_PROJECT_DIR/pyproject.toml" -o -f "$HOST_PROJECT_DIR/setup.py" ]; then
     echo "Python project detected, creating virtual environment..."
-    cd /workspace
+    cd "$HOST_PROJECT_DIR"
     uv venv .venv
     echo "Virtual environment created at .venv/"
     echo "  Activate with: source .venv/bin/activate"
