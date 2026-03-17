@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,6 +37,9 @@ func (Codex) HasSession(projectPath string) bool {
 func (Codex) Command(resume bool, extraArgs []string) []string {
 	if resume && len(extraArgs) == 0 {
 		return wrapZsh("codex resume --last --yolo")
+	}
+	if resume && len(extraArgs) > 0 {
+		fmt.Fprintln(os.Stderr, "! codex: resume skipped because extra args were provided")
 	}
 	parts := []string{"codex", "--yolo"}
 	parts = append(parts, quoteArgs(extraArgs)...)
