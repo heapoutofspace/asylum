@@ -66,17 +66,18 @@ if [ -d "/home/claude/.ssh" ]; then
 fi
 
 # Translate host direnv approvals to container paths
-if [ -d "/tmp/host_direnv_allow" ] && [ -f "/workspace/.envrc" ] && [ -n "$HOST_PROJECT_DIR" ]; then
+if [ -d "/tmp/host_direnv_allow" ] && [ -n "$HOST_PROJECT_DIR" ] && [ -f "$HOST_PROJECT_DIR/.envrc" ]; then
     mkdir -p /home/claude/.local/share/direnv/allow
 
     host_envrc_path="$HOST_PROJECT_DIR/.envrc"
-    expected_host_hash=$(printf "%s\n" "$host_envrc_path" | cat - /workspace/.envrc | sha256sum | cut -d' ' -f1)
+    expected_host_hash=$(printf "%s\n" "$host_envrc_path" | cat - "$HOST_PROJECT_DIR/.envrc" | sha256sum | cut -d' ' -f1)
 
     if [ -f "/tmp/host_direnv_allow/$expected_host_hash" ]; then
         approved_path=$(cat "/tmp/host_direnv_allow/$expected_host_hash")
         if [ "$approved_path" = "$host_envrc_path" ]; then
-            container_hash=$(printf "/workspace/.envrc\n" | cat - /workspace/.envrc | sha256sum | cut -d' ' -f1)
-            echo "/workspace/.envrc" > /home/claude/.local/share/direnv/allow/"$container_hash"
+            container_envrc="$HOST_PROJECT_DIR/.envrc"
+            container_hash=$(printf "%s\n" "$container_envrc" | cat - "$container_envrc" | sha256sum | cut -d' ' -f1)
+            echo "$container_envrc" > /home/claude/.local/share/direnv/allow/"$container_hash"
         fi
     fi
 fi
