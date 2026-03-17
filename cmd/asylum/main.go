@@ -273,7 +273,11 @@ func runCleanup() {
 	fmt.Scanln(&answer)
 
 	if strings.ToLower(strings.TrimSpace(answer)) == "y" {
-		home, _ := os.UserHomeDir()
+		home, err := os.UserHomeDir()
+		if err != nil {
+			log.Error("home dir: %v", err)
+			return
+		}
 		os.RemoveAll(filepath.Join(home, ".asylum", "cache"))
 		os.RemoveAll(filepath.Join(home, ".asylum", "projects"))
 		log.Success("cached data removed")
