@@ -56,7 +56,10 @@ func RunArgs(opts RunOpts) ([]string, error) {
 		"-w", opts.ProjectDir,
 	}
 
-	args = appendVolumes(args, home, containerName, opts)
+	args, err = appendVolumes(args, home, containerName, opts)
+	if err != nil {
+		return nil, err
+	}
 	args = appendEnvVars(args, home, opts)
 	args = appendPorts(args, opts.Config.Ports)
 
@@ -75,7 +78,7 @@ func containerName(projectDir string) string {
 	return fmt.Sprintf("asylum-%x", h[:6])
 }
 
-func appendVolumes(args []string, home, cname string, opts RunOpts) []string {
+func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, error) {
 	vol := func(host, container, mode string) {
 		mount := host + ":" + container
 		if mode != "" {
@@ -109,13 +112,17 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) []string {
 	}
 	for name, containerPath := range caches {
 		hostPath := filepath.Join(cacheBase, name)
-		os.MkdirAll(hostPath, 0755)
+		if err := os.MkdirAll(hostPath, 0755); err != nil {
+			return nil, fmt.Errorf("create cache dir %s: %w", hostPath, err)
+		}
 		vol(hostPath, containerPath, "rw")
 	}
 
 	// Shell history
 	histDir := filepath.Join(home, ".asylum", "projects", cname, "history")
-	os.MkdirAll(histDir, 0755)
+	if err := os.MkdirAll(histDir, 0755); err != nil {
+		return nil, fmt.Errorf("create history dir: %w", err)
+	}
 	vol(histDir, "/home/claude/.shell_history", "rw")
 
 	// Agent config
@@ -136,7 +143,7 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) []string {
 		vol(parsed.Host, parsed.Container, parsed.Options)
 	}
 
-	return args
+	return args, nil
 }
 
 func appendEnvVars(args []string, home string, opts RunOpts) []string {
