@@ -2,9 +2,10 @@ package docker
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -20,10 +21,10 @@ func DockerAvailable() error {
 
 func Build(contextDir, dockerfilePath, tag string, labels, buildArgs map[string]string, noCache bool) error {
 	args := []string{"build", "-f", dockerfilePath, "-t", tag}
-	for _, k := range sortedKeys(labels) {
+	for _, k := range slices.Sorted(maps.Keys(labels)) {
 		args = append(args, "--label", k+"="+labels[k])
 	}
-	for _, k := range sortedKeys(buildArgs) {
+	for _, k := range slices.Sorted(maps.Keys(buildArgs)) {
 		args = append(args, "--build-arg", k+"="+buildArgs[k])
 	}
 	if noCache {
@@ -65,11 +66,3 @@ func PruneImages(filterLabel string) error {
 	return cmd.Run()
 }
 
-func sortedKeys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}

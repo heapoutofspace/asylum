@@ -37,7 +37,7 @@ func main() {
 		return
 	}
 
-	mode, extraArgs := resolveMode(positional, passthrough, flags)
+	mode, extraArgs := resolveMode(positional, passthrough)
 
 	if mode == modeSSHInit {
 		if err := ssh.Init(); err != nil {
@@ -239,7 +239,7 @@ func parseArgs(args []string) (cliFlags, []string, []string) {
 	return flags, positional, passthrough
 }
 
-func resolveMode(positional, passthrough []string, flags cliFlags) (runMode, []string) {
+func resolveMode(positional, passthrough []string) (runMode, []string) {
 	if len(positional) == 0 {
 		return modeAgent, passthrough
 	}

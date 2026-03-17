@@ -21,26 +21,32 @@ func (Codex) EnvVars() map[string]string {
 	}
 }
 
-func (Codex) HasSession(projectPath string) bool {
+// markerDir returns the directory used to store per-project session markers.
+// Codex stores sessions in a global date-organized tree with no per-project
+// metadata, so we use a separate marker to avoid resuming the wrong project.
+func (Codex) markerDir(projectPath string) (string, error) {
 	configDir, err := expandHome("~/.asylum/agents/codex")
+	if err != nil {
+		return "", err
+	}
+	encoded := strings.ReplaceAll(projectPath, "/", "-")
+	return filepath.Join(configDir, "projects", encoded), nil
+}
+
+func (c Codex) HasSession(projectPath string) bool {
+	dir, err := c.markerDir(projectPath)
 	if err != nil {
 		return false
 	}
-	// Codex stores sessions in a global date-organized tree with no per-project
-	// metadata. Use a per-project marker to avoid resuming the wrong project.
-	encoded := strings.ReplaceAll(projectPath, "/", "-")
-	marker := filepath.Join(configDir, "projects", encoded, ".has_session")
-	_, err = os.Stat(marker)
+	_, err = os.Stat(filepath.Join(dir, ".has_session"))
 	return err == nil
 }
 
-func (Codex) WriteMarker(projectPath string) error {
-	configDir, err := expandHome("~/.asylum/agents/codex")
+func (c Codex) WriteMarker(projectPath string) error {
+	dir, err := c.markerDir(projectPath)
 	if err != nil {
 		return err
 	}
-	encoded := strings.ReplaceAll(projectPath, "/", "-")
-	dir := filepath.Join(configDir, "projects", encoded)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}

@@ -26,7 +26,6 @@ func (Gemini) HasSession(projectPath string) bool {
 	if err != nil {
 		return false
 	}
-	// Scan for a .project_root file matching this project path
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue
