@@ -223,6 +223,14 @@ func copyDir(src, dst string) error {
 		rel, _ := filepath.Rel(src, path)
 		target := filepath.Join(dst, rel)
 
+		if d.Type()&fs.ModeSymlink != 0 {
+			link, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			return os.Symlink(link, target)
+		}
+
 		info, err := d.Info()
 		if err != nil {
 			return err
