@@ -35,10 +35,10 @@ func (Codex) HasSession(projectPath string) bool {
 }
 
 func (Codex) Command(resume bool, extraArgs []string) []string {
-	if resume && len(extraArgs) == 0 {
-		return wrapZsh("codex resume --last --yolo")
-	}
-	if resume && len(extraArgs) > 0 {
+	if resume {
+		if len(extraArgs) == 0 {
+			return wrapZsh("codex resume --last --yolo")
+		}
 		fmt.Fprintln(os.Stderr, "! codex: resume skipped because extra args were provided")
 	}
 	parts := []string{"codex", "--yolo"}
