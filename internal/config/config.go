@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,22 +76,13 @@ func merge(base, overlay Config) Config {
 		result.Agent = overlay.Agent
 	}
 
-	result.Ports = make([]string, 0, len(base.Ports)+len(overlay.Ports))
-	result.Ports = append(result.Ports, base.Ports...)
-	result.Ports = append(result.Ports, overlay.Ports...)
-
-	result.Volumes = make([]string, 0, len(base.Volumes)+len(overlay.Volumes))
-	result.Volumes = append(result.Volumes, base.Volumes...)
-	result.Volumes = append(result.Volumes, overlay.Volumes...)
+	result.Ports = concatSlices(base.Ports, overlay.Ports)
+	result.Volumes = concatSlices(base.Volumes, overlay.Volumes)
 
 	if overlay.Versions != nil {
 		merged := make(map[string]string, len(base.Versions)+len(overlay.Versions))
-		for k, v := range base.Versions {
-			merged[k] = v
-		}
-		for k, v := range overlay.Versions {
-			merged[k] = v
-		}
+		maps.Copy(merged, base.Versions)
+		maps.Copy(merged, overlay.Versions)
 		result.Versions = merged
 	}
 
@@ -106,6 +98,13 @@ func merge(base, overlay Config) Config {
 	}
 
 	return result
+}
+
+func concatSlices(a, b []string) []string {
+	out := make([]string, 0, len(a)+len(b))
+	out = append(out, a...)
+	out = append(out, b...)
+	return out
 }
 
 func applyFlags(cfg Config, flags CLIFlags) Config {
