@@ -112,4 +112,32 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 			t.Errorf("dockerfile does not end with USER claude:\n%s", df)
 		}
 	})
+
+	t.Run("apt package with shell operators rejected", func(t *testing.T) {
+		bad := []string{
+			"curl && echo pwned",
+			"curl; rm -rf /",
+			"curl\necho pwned",
+			"curl$(evil)",
+		}
+		for _, name := range bad {
+			_, err := generateProjectDockerfile(map[string][]string{"apt": {name}})
+			if err == nil {
+				t.Errorf("expected error for apt package name %q", name)
+			}
+		}
+	})
+
+	t.Run("npm package with shell operators rejected", func(t *testing.T) {
+		bad := []string{
+			"typescript && echo pwned",
+			"typescript; rm -rf /",
+		}
+		for _, name := range bad {
+			_, err := generateProjectDockerfile(map[string][]string{"npm": {name}})
+			if err == nil {
+				t.Errorf("expected error for npm package name %q", name)
+			}
+		}
+	})
 }

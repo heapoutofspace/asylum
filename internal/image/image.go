@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/inventage-ai/asylum/assets"
@@ -116,10 +117,26 @@ var knownPackageTypes = map[string]bool{
 	"apt": true, "npm": true, "pip": true, "run": true,
 }
 
+var validPackageName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9+\-.@:/~_]*$`)
+
+func validatePackageNames(pkgType string, names []string) error {
+	for _, name := range names {
+		if !validPackageName.MatchString(name) {
+			return fmt.Errorf("invalid %s package name %q", pkgType, name)
+		}
+	}
+	return nil
+}
+
 func generateProjectDockerfile(packages map[string][]string) (string, error) {
 	for k := range packages {
 		if !knownPackageTypes[k] {
 			return "", fmt.Errorf("unknown package type %q (valid: apt, npm, pip, run)", k)
+		}
+	}
+	for _, pkgType := range []string{"apt", "npm"} {
+		if err := validatePackageNames(pkgType, packages[pkgType]); err != nil {
+			return "", err
 		}
 	}
 
