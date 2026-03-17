@@ -40,7 +40,7 @@ func (Gemini) HasSession(projectPath string) bool {
 		}
 		chats, err := os.ReadDir(filepath.Join(tmpDir, e.Name(), "chats"))
 		if err != nil {
-			return false
+			continue
 		}
 		return len(chats) > 0
 	}
