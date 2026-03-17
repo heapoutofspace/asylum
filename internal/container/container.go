@@ -217,15 +217,20 @@ func copyDir(src, dst string) error {
 		rel, _ := filepath.Rel(src, path)
 		target := filepath.Join(dst, rel)
 
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+
 		if d.IsDir() {
-			return os.MkdirAll(target, 0755)
+			return os.MkdirAll(target, info.Mode())
 		}
 
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(target, data, 0644)
+		return os.WriteFile(target, data, info.Mode())
 	})
 }
 
