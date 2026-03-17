@@ -133,13 +133,18 @@ Images auto-rebuild when the Dockerfile or your packages config changes (hash-ba
 
 Your project is mounted at its **real host path** inside the container (not `/workspace`). This preserves absolute paths and makes git worktrees work correctly.
 
-Asylum also mounts:
-- Git config (read-only)
-- SSH keys from `~/.asylum/ssh/`
-- Package caches (npm, pip, maven, gradle) — persisted per project
-- Shell history — persisted per project
-- Agent config from `~/.asylum/agents/<agent>/`
-- `.env` file loaded automatically
+| What | Host Path | Scope |
+|------|-----------|-------|
+| Project directory | `$PWD` | Per project |
+| Git config | `~/.gitconfig` | Global (read-only) |
+| SSH keys | `~/.asylum/ssh/` | Global |
+| Agent config | `~/.asylum/agents/<agent>/` | Global (per agent) |
+| Package caches (npm, pip, maven, gradle) | `~/.asylum/cache/<id>/` | Per project |
+| Shell history | `~/.asylum/projects/<id>/history` | Per project |
+| Direnv approvals | `~/.local/share/direnv/allow` | Global (read-only) |
+| `.env` file | `$PWD/.env` | Per project (env vars only) |
+
+On first run, agent config is **seeded** (one-time copy) from the host native config directory (e.g. `~/.claude` → `~/.asylum/agents/claude/`). After that, the asylum copy is independent — changes to the host config won't propagate.
 
 ### Sessions
 
