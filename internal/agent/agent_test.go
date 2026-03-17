@@ -174,24 +174,23 @@ func TestCodexHasSession(t *testing.T) {
 	t.Setenv("HOME", dir)
 
 	a := Codex{}
-	sessionsDir := filepath.Join(dir, ".asylum", "agents", "codex", "sessions")
+	projectsDir := filepath.Join(dir, ".asylum", "agents", "codex", "projects")
 
 	if a.HasSession("/some/project") {
-		t.Error("should be false when sessions dir doesn't exist")
+		t.Error("should be false when marker does not exist")
 	}
 
-	// Sessions dir exists but no rollout files
-	os.MkdirAll(filepath.Join(sessionsDir, "2026", "03", "16"), 0755)
+	// Marker for a different project — should not match
+	os.MkdirAll(filepath.Join(projectsDir, "-other-project"), 0755)
+	os.WriteFile(filepath.Join(projectsDir, "-other-project", ".has_session"), []byte(""), 0644)
 	if a.HasSession("/some/project") {
-		t.Error("should be false when sessions dir has no rollout files")
+		t.Error("should be false when only a different project has a marker")
 	}
 
-	// Add a rollout file
-	os.WriteFile(
-		filepath.Join(sessionsDir, "2026", "03", "16", "rollout-2026-03-16T14-30-00-abc123.jsonl"),
-		[]byte("data"), 0644,
-	)
+	// Marker for this project
+	os.MkdirAll(filepath.Join(projectsDir, "-some-project"), 0755)
+	os.WriteFile(filepath.Join(projectsDir, "-some-project", ".has_session"), []byte(""), 0644)
 	if !a.HasSession("/some/project") {
-		t.Error("should be true when rollout files exist")
+		t.Error("should be true when marker exists for this project")
 	}
 }

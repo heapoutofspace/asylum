@@ -25,22 +25,12 @@ func (Codex) HasSession(projectPath string) bool {
 	if err != nil {
 		return false
 	}
-	sessionsDir := filepath.Join(configDir, "sessions")
-	found := false
-	filepath.WalkDir(sessionsDir, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if found {
-			return filepath.SkipDir
-		}
-		if !d.IsDir() && strings.HasPrefix(d.Name(), "rollout-") && strings.HasSuffix(d.Name(), ".jsonl") {
-			found = true
-			return filepath.SkipDir
-		}
-		return nil
-	})
-	return found
+	// Codex stores sessions in a global date-organized tree with no per-project
+	// metadata. Use a per-project marker to avoid resuming the wrong project.
+	encoded := strings.ReplaceAll(projectPath, "/", "-")
+	marker := filepath.Join(configDir, "projects", encoded, ".has_session")
+	_, err = os.Stat(marker)
+	return err == nil
 }
 
 func (Codex) Command(resume bool, extraArgs []string) []string {
