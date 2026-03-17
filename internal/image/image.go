@@ -142,9 +142,9 @@ func generateProjectDockerfile(packages map[string][]string) (string, error) {
 
 	if pip := packages["pip"]; len(pip) > 0 {
 		b.WriteString("\nUSER claude\n")
-		b.WriteString("RUN $HOME/.local/bin/uv tool install ")
-		b.WriteString(strings.Join(pip, " "))
-		b.WriteString("\n")
+		for _, pkg := range pip {
+			b.WriteString("RUN $HOME/.local/bin/uv tool install " + pkg + "\n")
+		}
 	}
 
 	if run := packages["run"]; len(run) > 0 {
