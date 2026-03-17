@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/inventage-ai/asylum/internal/config"
 	"github.com/inventage-ai/asylum/internal/log"
 )
+
+var invalidHostnameChars = regexp.MustCompile(`[^a-z0-9-]`)
 
 type Mode int
 
@@ -40,7 +43,7 @@ func RunArgs(opts RunOpts) ([]string, error) {
 	}
 
 	containerName := containerName(opts.ProjectDir)
-	hostname := "asylum-" + filepath.Base(opts.ProjectDir)
+	hostname := safeHostname(opts.ProjectDir)
 
 	seeded, err := ensureAgentConfig(home, opts.Agent)
 	if err != nil {
@@ -77,6 +80,19 @@ func RunArgs(opts RunOpts) ([]string, error) {
 func containerName(projectDir string) string {
 	h := sha256.Sum256([]byte(projectDir))
 	return fmt.Sprintf("asylum-%x", h[:6])
+}
+
+func safeHostname(projectDir string) string {
+	base := strings.ToLower(filepath.Base(projectDir))
+	safe := invalidHostnameChars.ReplaceAllString(base, "-")
+	safe = strings.Trim(safe, "-")
+	if len(safe) > 56 { // leave room for "asylum-" prefix (7 chars) within 63 total
+		safe = safe[:56]
+	}
+	if safe == "" {
+		safe = "project"
+	}
+	return "asylum-" + safe
 }
 
 func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, error) {
