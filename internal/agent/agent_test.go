@@ -194,3 +194,27 @@ func TestCodexHasSession(t *testing.T) {
 		t.Error("should be true when marker exists for this project")
 	}
 }
+
+func TestCodexWriteMarker(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	a := Codex{}
+
+	if a.HasSession("/some/project") {
+		t.Fatal("precondition: should be false before WriteMarker")
+	}
+
+	if err := a.WriteMarker("/some/project"); err != nil {
+		t.Fatalf("WriteMarker: %v", err)
+	}
+
+	if !a.HasSession("/some/project") {
+		t.Error("should be true after WriteMarker")
+	}
+
+	// Writing again should be idempotent
+	if err := a.WriteMarker("/some/project"); err != nil {
+		t.Errorf("WriteMarker second call: %v", err)
+	}
+}

@@ -34,6 +34,19 @@ func (Codex) HasSession(projectPath string) bool {
 	return err == nil
 }
 
+func (Codex) WriteMarker(projectPath string) error {
+	configDir, err := expandHome("~/.asylum/agents/codex")
+	if err != nil {
+		return err
+	}
+	encoded := strings.ReplaceAll(projectPath, "/", "-")
+	dir := filepath.Join(configDir, "projects", encoded)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, ".has_session"), nil, 0644)
+}
+
 func (Codex) Command(resume bool, extraArgs []string) []string {
 	if resume {
 		if len(extraArgs) == 0 {
