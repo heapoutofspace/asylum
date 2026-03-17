@@ -51,9 +51,12 @@ fi
 if [ -n "$HOST_PROJECT_DIR" ] && [ ! -d "$HOST_PROJECT_DIR/.venv" ] && [ -f "$HOST_PROJECT_DIR/requirements.txt" -o -f "$HOST_PROJECT_DIR/pyproject.toml" -o -f "$HOST_PROJECT_DIR/setup.py" ]; then
     echo "Python project detected, creating virtual environment..."
     cd "$HOST_PROJECT_DIR"
-    uv venv .venv
-    echo "Virtual environment created at .venv/"
-    echo "  Activate with: source .venv/bin/activate"
+    if uv venv .venv; then
+        echo "Virtual environment created at .venv/"
+        echo "  Activate with: source .venv/bin/activate"
+    else
+        echo "Warning: failed to create virtual environment (continuing)"
+    fi
 fi
 
 # Set proper permissions on mounted SSH directory
