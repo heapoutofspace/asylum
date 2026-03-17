@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/inventage-ai/asylum/internal/agent"
@@ -110,12 +111,17 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 		"maven":  "/home/claude/.m2",
 		"gradle": "/home/claude/.gradle",
 	}
-	for name, containerPath := range caches {
+	cacheNames := make([]string, 0, len(caches))
+	for name := range caches {
+		cacheNames = append(cacheNames, name)
+	}
+	sort.Strings(cacheNames)
+	for _, name := range cacheNames {
 		hostPath := filepath.Join(cacheBase, name)
 		if err := os.MkdirAll(hostPath, 0755); err != nil {
 			return nil, fmt.Errorf("create cache dir %s: %w", hostPath, err)
 		}
-		vol(hostPath, containerPath, "rw")
+		vol(hostPath, caches[name], "rw")
 	}
 
 	// Shell history
