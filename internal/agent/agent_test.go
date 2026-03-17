@@ -36,8 +36,8 @@ func TestClaudeCommand(t *testing.T) {
 		{"default with session", true, nil, []string{"claude", "--dangerously-skip-permissions", "--continue"}},
 		{"default no session", false, nil, []string{"claude", "--dangerously-skip-permissions"}},
 		{"new session", false, nil, []string{"claude", "--dangerously-skip-permissions"}},
-		{"with args resume", true, []string{"fix", "the", "bug"}, []string{"claude", "--dangerously-skip-permissions", "--continue", "fix", "the", "bug"}},
-		{"with args no resume", false, []string{"fix", "bug"}, []string{"claude", "--dangerously-skip-permissions", "fix", "bug"}},
+		{"with args resume", true, []string{"fix", "the", "bug"}, []string{"claude", "--dangerously-skip-permissions", "--continue", "'fix'", "'the'", "'bug'"}},
+		{"with args no resume", false, []string{"fix", "bug"}, []string{"claude", "--dangerously-skip-permissions", "'fix'", "'bug'"}},
 	}
 
 	for _, tt := range tests {
@@ -58,7 +58,7 @@ func TestGeminiCommand(t *testing.T) {
 	}{
 		{"default with session", true, nil, []string{"gemini", "--yolo", "--resume"}},
 		{"default no session", false, nil, []string{"gemini", "--yolo"}},
-		{"with args", true, []string{"-p", "fix bug"}, []string{"gemini", "--yolo", "--resume", "-p", "fix bug"}},
+		{"with args", true, []string{"-p", "fix bug"}, []string{"gemini", "--yolo", "--resume", "'-p'", "'fix bug'"}},
 	}
 
 	for _, tt := range tests {
@@ -79,7 +79,7 @@ func TestCodexCommand(t *testing.T) {
 	}{
 		{"default with session", true, nil, []string{"codex", "resume", "--last", "--yolo"}},
 		{"default no session", false, nil, []string{"codex", "--yolo"}},
-		{"with args skips resume", true, []string{"fix", "bug"}, []string{"codex", "--yolo", "fix", "bug"}},
+		{"with args skips resume", true, []string{"fix", "bug"}, []string{"codex", "--yolo", "'fix'", "'bug'"}},
 	}
 
 	for _, tt := range tests {

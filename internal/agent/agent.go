@@ -1,6 +1,9 @@
 package agent
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Agent interface {
 	Name() string
@@ -29,4 +32,16 @@ func Get(name string) (Agent, error) {
 
 func wrapZsh(cmd string) []string {
 	return []string{"zsh", "-c", "source ~/.zshrc && exec " + cmd}
+}
+
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
+}
+
+func quoteArgs(args []string) []string {
+	quoted := make([]string, len(args))
+	for i, a := range args {
+		quoted[i] = shellQuote(a)
+	}
+	return quoted
 }

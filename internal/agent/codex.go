@@ -45,6 +45,6 @@ func (Codex) Command(resume bool, extraArgs []string) []string {
 		return wrapZsh("codex resume --last --yolo")
 	}
 	parts := []string{"codex", "--yolo"}
-	parts = append(parts, extraArgs...)
+	parts = append(parts, quoteArgs(extraArgs)...)
 	return wrapZsh(strings.Join(parts, " "))
 }

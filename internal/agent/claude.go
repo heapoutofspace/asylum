@@ -45,7 +45,7 @@ func (Claude) Command(resume bool, extraArgs []string) []string {
 	if resume {
 		parts = append(parts, "--continue")
 	}
-	parts = append(parts, extraArgs...)
+	parts = append(parts, quoteArgs(extraArgs)...)
 	return wrapZsh(strings.Join(parts, " "))
 }
 

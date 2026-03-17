@@ -52,6 +52,6 @@ func (Gemini) Command(resume bool, extraArgs []string) []string {
 	if resume {
 		parts = append(parts, "--resume")
 	}
-	parts = append(parts, extraArgs...)
+	parts = append(parts, quoteArgs(extraArgs)...)
 	return wrapZsh(strings.Join(parts, " "))
 }
