@@ -86,7 +86,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	imageTag, err := image.EnsureProject(cfg.Packages, version, baseRebuilt)
+	imageTag, err := image.EnsureProject(cfg.Packages, version, baseRebuilt, flags.Rebuild)
 	if err != nil {
 		log.Error("%v", err)
 		os.Exit(1)

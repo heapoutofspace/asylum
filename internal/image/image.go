@@ -68,7 +68,7 @@ func EnsureBase(version string, noCache bool) (bool, error) {
 	return true, nil
 }
 
-func EnsureProject(packages map[string][]string, version string, baseRebuilt bool) (string, error) {
+func EnsureProject(packages map[string][]string, version string, baseRebuilt bool, noCache bool) (string, error) {
 	if len(packages) == 0 {
 		return baseTag, nil
 	}
@@ -104,7 +104,7 @@ func EnsureProject(packages map[string][]string, version string, baseRebuilt boo
 		"asylum.version":       version,
 	}
 
-	if err := docker.Build(tmpDir, dfPath, tag, labels, nil, false); err != nil {
+	if err := docker.Build(tmpDir, dfPath, tag, labels, nil, noCache); err != nil {
 		return "", fmt.Errorf("build project image: %w", err)
 	}
 
