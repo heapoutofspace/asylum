@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 )
 
@@ -19,11 +20,11 @@ func DockerAvailable() error {
 
 func Build(contextDir, dockerfilePath, tag string, labels, buildArgs map[string]string, noCache bool) error {
 	args := []string{"build", "-f", dockerfilePath, "-t", tag}
-	for k, v := range labels {
-		args = append(args, "--label", k+"="+v)
+	for _, k := range sortedKeys(labels) {
+		args = append(args, "--label", k+"="+labels[k])
 	}
-	for k, v := range buildArgs {
-		args = append(args, "--build-arg", k+"="+v)
+	for _, k := range sortedKeys(buildArgs) {
+		args = append(args, "--build-arg", k+"="+buildArgs[k])
 	}
 	if noCache {
 		args = append(args, "--no-cache")
@@ -62,4 +63,13 @@ func PruneImages(filterLabel string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func sortedKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
