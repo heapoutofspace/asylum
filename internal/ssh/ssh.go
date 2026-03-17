@@ -24,13 +24,14 @@ func Init() error {
 	knownHosts := filepath.Join(home, ".ssh", "known_hosts")
 	if info, err := os.Stat(knownHosts); err == nil && !info.IsDir() {
 		data, err := os.ReadFile(knownHosts)
-		if err == nil {
-			dst := filepath.Join(sshDir, "known_hosts")
-			if err := os.WriteFile(dst, data, 0600); err != nil {
-				return fmt.Errorf("write known_hosts: %w", err)
-			}
-			log.Success("copied known_hosts")
+		if err != nil {
+			return fmt.Errorf("read known_hosts: %w", err)
 		}
+		dst := filepath.Join(sshDir, "known_hosts")
+		if err := os.WriteFile(dst, data, 0600); err != nil {
+			return fmt.Errorf("write known_hosts: %w", err)
+		}
+		log.Success("copied known_hosts")
 	}
 
 	keyPath := filepath.Join(sshDir, "id_ed25519")
