@@ -169,6 +169,34 @@ func TestGeminiHasSession(t *testing.T) {
 	}
 }
 
+func TestGeminiHasSessionContinuesAfterReadDirError(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root ignores permission bits")
+	}
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	a := Gemini{}
+	tmpDir := filepath.Join(dir, ".asylum", "agents", "gemini", "tmp")
+
+	// First dir: matches project but chats/ is unreadable
+	badDir := filepath.Join(tmpDir, "bad")
+	os.MkdirAll(filepath.Join(badDir, "chats"), 0755)
+	os.WriteFile(filepath.Join(badDir, ".project_root"), []byte("/some/project\n"), 0644)
+	os.Chmod(filepath.Join(badDir, "chats"), 0000)
+	defer os.Chmod(filepath.Join(badDir, "chats"), 0755)
+
+	// Second dir: also matches, chats/ is readable and has files
+	goodDir := filepath.Join(tmpDir, "good")
+	os.MkdirAll(filepath.Join(goodDir, "chats"), 0755)
+	os.WriteFile(filepath.Join(goodDir, ".project_root"), []byte("/some/project\n"), 0644)
+	os.WriteFile(filepath.Join(goodDir, "chats", "session.json"), []byte("{}"), 0644)
+
+	if !a.HasSession("/some/project") {
+		t.Error("should be true: ReadDir error on first match should not stop scan")
+	}
+}
+
 func TestCodexHasSession(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
