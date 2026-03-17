@@ -28,7 +28,10 @@ func (Codex) HasSession(projectPath string) bool {
 	sessionsDir := filepath.Join(configDir, "sessions")
 	found := false
 	filepath.WalkDir(sessionsDir, func(path string, d os.DirEntry, err error) error {
-		if err != nil || found {
+		if err != nil {
+			return err
+		}
+		if found {
 			return filepath.SkipDir
 		}
 		if !d.IsDir() && strings.HasPrefix(d.Name(), "rollout-") && strings.HasSuffix(d.Name(), ".jsonl") {
