@@ -305,19 +305,25 @@ func resolveMode(subcommand string, admin bool) container.Mode {
 func runCleanup() {
 	log.Info("removing asylum images...")
 
+	var imageErr bool
 	if err := docker.RemoveImages("asylum:latest"); err != nil {
 		log.Error("remove asylum:latest: %v", err)
+		imageErr = true
 	}
 
 	if imgs, err := docker.ListImages("asylum:proj-*"); err != nil {
 		log.Error("list project images: %v", err)
+		imageErr = true
 	} else if len(imgs) > 0 {
 		if err := docker.RemoveImages(imgs...); err != nil {
 			log.Error("remove project images: %v", err)
+			imageErr = true
 		}
 	}
 
-	log.Success("images removed")
+	if !imageErr {
+		log.Success("images removed")
+	}
 
 	fmt.Print("Remove cached data (~/.asylum/cache/ and ~/.asylum/projects/)? (y/N) ")
 	var answer string
