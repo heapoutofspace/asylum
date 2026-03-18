@@ -140,7 +140,11 @@ func readToolVersionsJava(projectDir string) string {
 		return ""
 	}
 	for _, line := range strings.Split(string(data), "\n") {
-		if name, version, ok := strings.Cut(line, " "); ok && name == "java" {
+		name, version, ok := strings.Cut(line, " ")
+		if !ok {
+			name, version, ok = strings.Cut(line, "\t")
+		}
+		if ok && name == "java" {
 			return strings.TrimSpace(version)
 		}
 	}

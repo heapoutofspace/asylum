@@ -287,6 +287,19 @@ func TestToolVersionsJava(t *testing.T) {
 		}
 	})
 
+	t.Run("tab-separated java version", func(t *testing.T) {
+		dir := t.TempDir()
+		os.WriteFile(filepath.Join(dir, ".tool-versions"), []byte("java\t21.0.2\nnodejs\t20.11.0\n"), 0644)
+
+		cfg, err := Load(dir, CLIFlags{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Versions["java"] != "21.0.2" {
+			t.Errorf("java = %q, want %q", cfg.Versions["java"], "21.0.2")
+		}
+	})
+
 	t.Run("no java line", func(t *testing.T) {
 		dir := t.TempDir()
 		os.WriteFile(filepath.Join(dir, ".tool-versions"), []byte("nodejs 20.11.0\n"), 0644)
