@@ -108,6 +108,14 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	// Project directory at real path
 	vol(opts.ProjectDir, opts.ProjectDir, "z")
 
+	// Git worktree: mount both the worktree gitdir and main repo's .git
+	if wtDir, commonDir := resolveGitWorktree(opts.ProjectDir); wtDir != "" {
+		vol(wtDir, wtDir, "z")
+		if commonDir != wtDir {
+			vol(commonDir, commonDir, "z")
+		}
+	}
+
 	// Gitconfig
 	gitconfig := filepath.Join(home, ".gitconfig")
 	if fileExists(gitconfig) {
@@ -280,6 +288,45 @@ func expandTilde(path, home string) string {
 		return filepath.Join(home, path[2:])
 	}
 	return path
+}
+
+// resolveGitWorktree detects if projectDir is a git worktree and returns
+// the worktree-specific gitdir and the common (main repo) gitdir.
+// Returns empty strings if the project is not a worktree.
+func resolveGitWorktree(projectDir string) (worktreeDir, commonDir string) {
+	dotGit := filepath.Join(projectDir, ".git")
+	info, err := os.Lstat(dotGit)
+	if err != nil || info.IsDir() {
+		return "", ""
+	}
+
+	data, err := os.ReadFile(dotGit)
+	if err != nil {
+		return "", ""
+	}
+	line := strings.TrimSpace(string(data))
+	if !strings.HasPrefix(line, "gitdir: ") {
+		return "", ""
+	}
+
+	gitdir := line[len("gitdir: "):]
+	if !filepath.IsAbs(gitdir) {
+		gitdir = filepath.Join(projectDir, gitdir)
+	}
+	gitdir = filepath.Clean(gitdir)
+
+	commonFile := filepath.Join(gitdir, "commondir")
+	commonData, err := os.ReadFile(commonFile)
+	if err != nil {
+		return "", ""
+	}
+	common := strings.TrimSpace(string(commonData))
+	if !filepath.IsAbs(common) {
+		common = filepath.Join(gitdir, common)
+	}
+	common = filepath.Clean(common)
+
+	return gitdir, common
 }
 
 func fileExists(path string) bool {

@@ -489,3 +489,73 @@ func TestExecArgs(t *testing.T) {
 	}
 }
 
+func TestResolveGitWorktree(t *testing.T) {
+	t.Run("worktree detected", func(t *testing.T) {
+		// Simulate: project/.git is a file, worktree dir has commondir
+		project := t.TempDir()
+		mainRepo := t.TempDir()
+		mainGit := filepath.Join(mainRepo, ".git")
+		wtDir := filepath.Join(mainGit, "worktrees", "feature")
+		os.MkdirAll(wtDir, 0755)
+		os.MkdirAll(mainGit, 0755)
+
+		// project/.git file points to worktree dir
+		os.WriteFile(filepath.Join(project, ".git"), []byte("gitdir: "+wtDir+"\n"), 0644)
+		// worktree dir has commondir pointing to main .git
+		os.WriteFile(filepath.Join(wtDir, "commondir"), []byte(mainGit+"\n"), 0644)
+
+		wt, common := resolveGitWorktree(project)
+		if wt != wtDir {
+			t.Errorf("worktreeDir = %q, want %q", wt, wtDir)
+		}
+		if common != mainGit {
+			t.Errorf("commonDir = %q, want %q", common, mainGit)
+		}
+	})
+
+	t.Run("regular repo", func(t *testing.T) {
+		project := t.TempDir()
+		os.MkdirAll(filepath.Join(project, ".git"), 0755)
+
+		wt, common := resolveGitWorktree(project)
+		if wt != "" || common != "" {
+			t.Errorf("expected empty strings for regular repo, got %q, %q", wt, common)
+		}
+	})
+
+	t.Run("no git", func(t *testing.T) {
+		project := t.TempDir()
+
+		wt, common := resolveGitWorktree(project)
+		if wt != "" || common != "" {
+			t.Errorf("expected empty strings for no git, got %q, %q", wt, common)
+		}
+	})
+
+	t.Run("relative gitdir", func(t *testing.T) {
+		project := t.TempDir()
+		mainGit := filepath.Join(project, "..", "main-repo", ".git")
+		wtDir := filepath.Join(mainGit, "worktrees", "feature")
+		os.MkdirAll(wtDir, 0755)
+
+		// Use relative path in .git file
+		os.WriteFile(filepath.Join(project, ".git"), []byte("gitdir: ../main-repo/.git/worktrees/feature\n"), 0644)
+		os.WriteFile(filepath.Join(wtDir, "commondir"), []byte("../..\n"), 0644)
+
+		wt, common := resolveGitWorktree(project)
+		if wt == "" {
+			t.Fatal("expected worktreeDir, got empty")
+		}
+		if common == "" {
+			t.Fatal("expected commonDir, got empty")
+		}
+		// Both should resolve to absolute clean paths
+		if !filepath.IsAbs(wt) {
+			t.Errorf("worktreeDir should be absolute, got %q", wt)
+		}
+		if !filepath.IsAbs(common) {
+			t.Errorf("commonDir should be absolute, got %q", common)
+		}
+	})
+}
+

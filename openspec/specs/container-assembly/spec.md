@@ -55,6 +55,21 @@ The container command SHALL vary based on mode: agent (default), shell, admin sh
 - **WHEN** mode is command with args
 - **THEN** those args are used as the container command
 
+### Requirement: Mount git worktree directories
+When the project directory is a git worktree, the volume assembly SHALL mount both the worktree-specific gitdir and the main repo's `.git` directory into the container.
+
+#### Scenario: Project is a git worktree
+- **WHEN** the project directory's `.git` is a file containing `gitdir: /repo/.git/worktrees/feature`
+- **THEN** both `/repo/.git/worktrees/feature` and `/repo/.git` are mounted at their real host paths
+
+#### Scenario: Project is a regular repo
+- **WHEN** the project directory's `.git` is a directory
+- **THEN** no additional git-related volumes are added (`.git` is already inside the mounted project dir)
+
+#### Scenario: Project has no .git
+- **WHEN** the project directory has no `.git` file or directory
+- **THEN** no additional git-related volumes are added
+
 ### Requirement: Agent config seeding
 On first run for an agent, the system SHALL copy the agent's native host config to the asylum agents directory.
 
