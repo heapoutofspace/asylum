@@ -5,6 +5,99 @@ import (
 	"testing"
 )
 
+func TestResolveMode(t *testing.T) {
+	tests := []struct {
+		name        string
+		positional  []string
+		passthrough []string
+		wantMode    runMode
+		wantExtra   []string
+		wantErr     bool
+	}{
+		{
+			name:      "no positional defaults to agent",
+			wantMode:  modeAgent,
+			wantExtra: nil,
+		},
+		{
+			name:        "no positional passes through passthrough args",
+			passthrough: []string{"--some-flag"},
+			wantMode:    modeAgent,
+			wantExtra:   []string{"--some-flag"},
+		},
+		{
+			name:       "shell positional",
+			positional: []string{"shell"},
+			wantMode:   modeShell,
+			wantExtra:  nil,
+		},
+		{
+			name:        "shell with --admin in passthrough",
+			positional:  []string{"shell"},
+			passthrough: []string{"--admin"},
+			wantMode:    modeAdminShell,
+			wantExtra:   nil,
+		},
+		{
+			name:        "shell with other passthrough flags (no --admin)",
+			positional:  []string{"shell"},
+			passthrough: []string{"--verbose"},
+			wantMode:    modeShell,
+			wantExtra:   nil,
+		},
+		{
+			name:       "shell with extra positional returns error",
+			positional: []string{"shell", "extra"},
+			wantErr:    true,
+		},
+		{
+			name:       "ssh-init positional",
+			positional: []string{"ssh-init"},
+			wantMode:   modeSSHInit,
+			wantExtra:  nil,
+		},
+		{
+			name:       "ssh-init with extra positional returns error",
+			positional: []string{"ssh-init", "extra"},
+			wantErr:    true,
+		},
+		{
+			name:        "arbitrary command mode",
+			positional:  []string{"run"},
+			passthrough: []string{"arg1", "arg2"},
+			wantMode:    modeCommand,
+			wantExtra:   []string{"run", "arg1", "arg2"},
+		},
+		{
+			name:       "arbitrary command no passthrough",
+			positional: []string{"ls"},
+			wantMode:   modeCommand,
+			wantExtra:  []string{"ls"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mode, extra, err := resolveMode(tt.positional, tt.passthrough)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if mode != tt.wantMode {
+				t.Errorf("mode = %d, want %d", mode, tt.wantMode)
+			}
+			if !reflect.DeepEqual(extra, tt.wantExtra) {
+				t.Errorf("extra = %v, want %v", extra, tt.wantExtra)
+			}
+		})
+	}
+}
+
 func TestParseArgs_Version(t *testing.T) {
 	flags, positional, passthrough := parseArgs([]string{"--version"})
 
