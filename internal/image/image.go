@@ -75,12 +75,16 @@ func EnsureBase(version string, noCache bool) (bool, error) {
 	return true, nil
 }
 
-func EnsureProject(packages map[string][]string, version string, baseRebuilt bool, noCache bool) (string, error) {
-	if len(packages) == 0 {
+// Pre-installed Java versions in the base image.
+var preinstalledJava = map[string]bool{"17": true, "21": true, "25": true}
+
+func EnsureProject(packages map[string][]string, javaVersion string, version string, baseRebuilt bool, noCache bool) (string, error) {
+	needsCustomJava := javaVersion != "" && !preinstalledJava[javaVersion]
+	if len(packages) == 0 && !needsCustomJava {
 		return baseTag, nil
 	}
 
-	dockerfile, err := generateProjectDockerfile(packages)
+	dockerfile, err := generateProjectDockerfile(packages, javaVersion)
 	if err != nil {
 		return "", err
 	}
@@ -123,7 +127,7 @@ func validatePackageNames(pkgType string, names []string) error {
 	return nil
 }
 
-func generateProjectDockerfile(packages map[string][]string) (string, error) {
+func generateProjectDockerfile(packages map[string][]string, javaVersion string) (string, error) {
 	for k := range packages {
 		if !knownPackageTypes[k] {
 			return "", fmt.Errorf("unknown package type %q (valid: apt, npm, pip, run)", k)
@@ -167,6 +171,11 @@ func generateProjectDockerfile(packages map[string][]string) (string, error) {
 
 	writeUserRuns("$HOME/.local/bin/uv tool install ", packages["pip"])
 	writeUserRuns("", packages["run"])
+
+	if javaVersion != "" && !preinstalledJava[javaVersion] {
+		b.WriteString("\nUSER claude\n")
+		b.WriteString("RUN mise install java@temurin-" + javaVersion + " && mise use --global java@temurin-" + javaVersion + "\n")
+	}
 
 	b.WriteString("\nUSER claude\n")
 

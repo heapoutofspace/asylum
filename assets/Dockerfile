@@ -34,7 +34,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-dev python3-pip python3-venv \
         libssl-dev libffi-dev \
         # Java dependencies
-        default-jdk maven gradle \
+        maven \
         # Search tools
         ripgrep fd-find && \
     # Setup locale
@@ -104,8 +104,9 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell && \
     fnm install --lts && \
     fnm default lts-latest
 
-# Setup fnm in bash only (zsh will be set up after oh-my-zsh)
-RUN echo 'eval "$(fnm env)"' >> ~/.bashrc
+# Setup fnm and mise in bash only (zsh will be set up after oh-my-zsh)
+RUN echo 'eval "$(fnm env)"' >> ~/.bashrc && \
+    echo 'eval "$(mise activate bash)"' >> ~/.bashrc
 
 # Install Node.js global packages
 RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && \
@@ -130,16 +131,12 @@ RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && 
 # Install Codex
 RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && npm install -g @openai/codex'
 
-# Install SDKMAN for Java toolchain management
-RUN curl -s "https://get.sdkman.io?rcupdate=false" | bash && \
-    echo 'source "$HOME/.sdkman/bin/sdkman-init.sh"' >> ~/.bashrc && \
-    echo 'source "$HOME/.sdkman/bin/sdkman-init.sh"' >> ~/.zshrc && \
-    bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
-        sdk install java 17.0.15-tem && \
-        sdk install java 21.0.8-tem && \
-        sdk install java 25.0.2-tem && \
-        sdk default java 21.0.8-tem && \
-        sdk install gradle"
+# Install mise for Java/Gradle version management
+RUN curl https://mise.run | sh && \
+    ~/.local/bin/mise install java@temurin-17 java@temurin-21 java@temurin-25 && \
+    ~/.local/bin/mise use --global java@temurin-21 && \
+    ~/.local/bin/mise install gradle@latest && \
+    ~/.local/bin/mise use --global gradle@latest
 
 # Setup Python tools
 RUN /home/${USERNAME}/.local/bin/uv tool install black && \
@@ -150,11 +147,12 @@ RUN /home/${USERNAME}/.local/bin/uv tool install black && \
     /home/${USERNAME}/.local/bin/uv tool install poetry && \
     /home/${USERNAME}/.local/bin/uv tool install pipenv
 
-# Install oh-my-zsh and setup fnm for zsh
+# Install oh-my-zsh and setup fnm/mise for zsh
 RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
     sed -i 's/ZSH_THEME=".*"/ZSH_THEME="robbyrussell"/' ~/.zshrc && \
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && \
-    echo 'eval "$(fnm env)"' >> ~/.zshrc
+    echo 'eval "$(fnm env)"' >> ~/.zshrc && \
+    echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
 
 # Setup direnv hooks
 RUN echo 'eval "$(direnv hook bash)"' >> ~/.bashrc && \

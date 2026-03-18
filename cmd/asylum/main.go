@@ -88,7 +88,7 @@ func main() {
 		die("%v", err)
 	}
 
-	imageTag, err := image.EnsureProject(cfg.Packages, version, baseRebuilt, flags.Rebuild)
+	imageTag, err := image.EnsureProject(cfg.Packages, cfg.Versions["java"], version, baseRebuilt, flags.Rebuild)
 	if err != nil {
 		die("%v", err)
 	}

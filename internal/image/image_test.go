@@ -7,7 +7,7 @@ import (
 
 func TestGenerateProjectDockerfile(t *testing.T) {
 	t.Run("unknown key rejected", func(t *testing.T) {
-		_, err := generateProjectDockerfile(map[string][]string{"bad": {"x"}})
+		_, err := generateProjectDockerfile(map[string][]string{"bad": {"x"}}, "")
 		if err == nil {
 			t.Error("expected error for unknown package type")
 		}
@@ -16,7 +16,7 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 	t.Run("apt packages", func(t *testing.T) {
 		df, err := generateProjectDockerfile(map[string][]string{
 			"apt": {"curl", "jq"},
-		})
+		}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -37,7 +37,7 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 	t.Run("npm packages", func(t *testing.T) {
 		df, err := generateProjectDockerfile(map[string][]string{
 			"npm": {"typescript", "eslint"},
-		})
+		}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -52,7 +52,7 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 	t.Run("pip packages each get own RUN", func(t *testing.T) {
 		df, err := generateProjectDockerfile(map[string][]string{
 			"pip": {"ruff", "black"},
-		})
+		}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -73,7 +73,7 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 	t.Run("run commands emitted as-is", func(t *testing.T) {
 		df, err := generateProjectDockerfile(map[string][]string{
 			"run": {"echo hello", "echo world"},
-		})
+		}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -89,7 +89,7 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 		df, err := generateProjectDockerfile(map[string][]string{
 			"apt": {},
 			"npm": {"typescript"},
-		})
+		}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -104,7 +104,7 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 	t.Run("always ends with USER claude", func(t *testing.T) {
 		df, err := generateProjectDockerfile(map[string][]string{
 			"apt": {"curl"},
-		})
+		}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -121,7 +121,7 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 			"curl$(evil)",
 		}
 		for _, name := range bad {
-			_, err := generateProjectDockerfile(map[string][]string{"apt": {name}})
+			_, err := generateProjectDockerfile(map[string][]string{"apt": {name}}, "")
 			if err == nil {
 				t.Errorf("expected error for apt package name %q", name)
 			}
@@ -134,10 +134,43 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 			"typescript; rm -rf /",
 		}
 		for _, name := range bad {
-			_, err := generateProjectDockerfile(map[string][]string{"npm": {name}})
+			_, err := generateProjectDockerfile(map[string][]string{"npm": {name}}, "")
 			if err == nil {
 				t.Errorf("expected error for npm package name %q", name)
 			}
+		}
+	})
+
+	t.Run("custom java version adds mise install", func(t *testing.T) {
+		df, err := generateProjectDockerfile(map[string][]string{}, "11")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(df, "mise install java@temurin-11") {
+			t.Error("missing mise install for custom java version")
+		}
+		if !strings.Contains(df, "mise use --global java@temurin-11") {
+			t.Error("missing mise use for custom java version")
+		}
+	})
+
+	t.Run("pre-installed java version skips mise install", func(t *testing.T) {
+		df, err := generateProjectDockerfile(map[string][]string{"apt": {"curl"}}, "21")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(df, "mise install") {
+			t.Error("pre-installed java version should not add mise install")
+		}
+	})
+
+	t.Run("custom java only triggers project image", func(t *testing.T) {
+		df, err := generateProjectDockerfile(map[string][]string{}, "11")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.HasPrefix(df, "FROM asylum:latest") {
+			t.Error("should start with FROM asylum:latest")
 		}
 	})
 
@@ -149,7 +182,7 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 			"ruff$(evil)",
 		}
 		for _, name := range bad {
-			_, err := generateProjectDockerfile(map[string][]string{"pip": {name}})
+			_, err := generateProjectDockerfile(map[string][]string{"pip": {name}}, "")
 			if err == nil {
 				t.Errorf("expected error for pip package name %q", name)
 			}

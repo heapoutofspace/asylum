@@ -33,23 +33,18 @@ if command -v fnm >/dev/null 2>&1; then
     eval "$(fnm env --shell bash)"
 fi
 
-# Source SDKMAN if available, and select Java version if configured
-if [ -f "$HOME/.sdkman/bin/sdkman-init.sh" ]; then
-    source "$HOME/.sdkman/bin/sdkman-init.sh"
+# Activate mise for Java/Gradle
+if command -v mise >/dev/null 2>&1; then
+    eval "$(mise activate bash)"
     if [ -n "${ASYLUM_JAVA_VERSION:-}" ]; then
+        # Must match preinstalledJava in internal/image/image.go
         case "${ASYLUM_JAVA_VERSION}" in
             17|21|25)
-                match=$(ls -d "$HOME/.sdkman/candidates/java/${ASYLUM_JAVA_VERSION}"*-tem 2>/dev/null | head -1)
-                if [ -n "$match" ]; then
-                    export JAVA_HOME="$match"
-                    export PATH="$JAVA_HOME/bin:$PATH"
-                else
-                    echo "Warning: Java version matching '${ASYLUM_JAVA_VERSION}' not found. Installed:"
-                    ls "$HOME/.sdkman/candidates/java/" 2>/dev/null || true
-                fi
+                mise use --global java@temurin-"${ASYLUM_JAVA_VERSION}" >/dev/null 2>&1
+                eval "$(mise env)"
                 ;;
             *)
-                echo "Warning: ASYLUM_JAVA_VERSION '${ASYLUM_JAVA_VERSION}' is not a supported version (17, 21, 25). Ignoring."
+                echo "Warning: ASYLUM_JAVA_VERSION '${ASYLUM_JAVA_VERSION}' is not a pre-installed version (17, 21, 25). Use versions.java in config to install it."
                 ;;
         esac
     fi

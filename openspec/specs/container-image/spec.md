@@ -16,7 +16,7 @@ The entrypoint SHALL use ASYLUM_ prefixed environment variables instead of AGENT
 
 #### Scenario: Java version
 - **WHEN** `ASYLUM_JAVA_VERSION` is set
-- **THEN** the entrypoint selects that Java version
+- **THEN** the entrypoint selects that Java version via mise
 
 ### Requirement: Welcome banner
 The entrypoint SHALL display an Asylum-branded welcome banner with tool versions.
