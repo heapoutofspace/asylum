@@ -92,10 +92,13 @@ func Run(currentVersion, channel, execPath string) error {
 func fetchTagCommit(tag string) string {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/git/refs/tags/%s", repo, tag)
 	resp, err := http.Get(url)
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if err != nil {
 		return ""
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
 
 	var ref struct {
 		Object struct {
