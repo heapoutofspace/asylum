@@ -146,11 +146,14 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(df, "mise install java@temurin-11") {
+		if !strings.Contains(df, "mise install java@11") {
 			t.Error("missing mise install for custom java version")
 		}
-		if !strings.Contains(df, "mise use --global java@temurin-11") {
+		if !strings.Contains(df, "mise use --global java@11") {
 			t.Error("missing mise use for custom java version")
+		}
+		if !strings.Contains(df, "$HOME/.local/bin/mise") {
+			t.Error("mise should use full path")
 		}
 	})
 

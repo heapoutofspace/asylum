@@ -174,7 +174,7 @@ func generateProjectDockerfile(packages map[string][]string, javaVersion string)
 
 	if javaVersion != "" && !preinstalledJava[javaVersion] {
 		b.WriteString("\nUSER claude\n")
-		b.WriteString("RUN mise install java@temurin-" + javaVersion + " && mise use --global java@temurin-" + javaVersion + "\n")
+		b.WriteString("RUN $HOME/.local/bin/mise install java@" + javaVersion + " && $HOME/.local/bin/mise use --global java@" + javaVersion + "\n")
 	}
 
 	b.WriteString("\nUSER claude\n")
