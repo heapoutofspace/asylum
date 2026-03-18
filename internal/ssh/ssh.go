@@ -5,9 +5,47 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/inventage-ai/asylum/internal/log"
 )
+
+// mergeKnownHosts combines host entries with any existing entries in dst,
+// deduplicating by full line content. Host entries come first, then any
+// extra lines from the existing file that weren't in the host data.
+func mergeKnownHosts(hostData []byte, dstPath string) []byte {
+	hostLines := nonEmptyLines(string(hostData))
+
+	seen := make(map[string]bool, len(hostLines))
+	for _, l := range hostLines {
+		seen[l] = true
+	}
+
+	existing, err := os.ReadFile(dstPath)
+	if err == nil {
+		for _, l := range nonEmptyLines(string(existing)) {
+			if !seen[l] {
+				hostLines = append(hostLines, l)
+				seen[l] = true
+			}
+		}
+	}
+
+	if len(hostLines) == 0 {
+		return hostData
+	}
+	return []byte(strings.Join(hostLines, "\n") + "\n")
+}
+
+func nonEmptyLines(s string) []string {
+	var out []string
+	for _, l := range strings.Split(s, "\n") {
+		if strings.TrimSpace(l) != "" {
+			out = append(out, l)
+		}
+	}
+	return out
+}
 
 func Init() error {
 	home, err := os.UserHomeDir()
@@ -22,15 +60,16 @@ func Init() error {
 
 	knownHosts := filepath.Join(home, ".ssh", "known_hosts")
 	if info, err := os.Stat(knownHosts); err == nil && !info.IsDir() {
-		data, err := os.ReadFile(knownHosts)
+		hostData, err := os.ReadFile(knownHosts)
 		if err != nil {
 			return fmt.Errorf("read known_hosts: %w", err)
 		}
 		dst := filepath.Join(sshDir, "known_hosts")
-		if err := os.WriteFile(dst, data, 0600); err != nil {
+		merged := mergeKnownHosts(hostData, dst)
+		if err := os.WriteFile(dst, merged, 0600); err != nil {
 			return fmt.Errorf("write known_hosts: %w", err)
 		}
-		log.Success("copied known_hosts")
+		log.Success("merged known_hosts")
 	}
 
 	keyPath := filepath.Join(sshDir, "id_ed25519")
