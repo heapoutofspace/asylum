@@ -154,19 +154,18 @@ func generateProjectDockerfile(packages map[string][]string) (string, error) {
 		b.WriteString("\"\n")
 	}
 
-	if pip := packages["pip"]; len(pip) > 0 {
+	writeUserRuns := func(prefix string, items []string) {
+		if len(items) == 0 {
+			return
+		}
 		b.WriteString("\nUSER claude\n")
-		for _, pkg := range pip {
-			b.WriteString("RUN $HOME/.local/bin/uv tool install " + pkg + "\n")
+		for _, item := range items {
+			b.WriteString("RUN " + prefix + item + "\n")
 		}
 	}
 
-	if run := packages["run"]; len(run) > 0 {
-		b.WriteString("\nUSER claude\n")
-		for _, cmd := range run {
-			b.WriteString("RUN " + cmd + "\n")
-		}
-	}
+	writeUserRuns("$HOME/.local/bin/uv tool install ", packages["pip"])
+	writeUserRuns("", packages["run"])
 
 	// Ensure we always end as the non-root user
 	b.WriteString("\nUSER claude\n")

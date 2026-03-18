@@ -20,7 +20,6 @@ func Init() error {
 		return fmt.Errorf("create ssh dir: %w", err)
 	}
 
-	// Copy known_hosts if it exists
 	knownHosts := filepath.Join(home, ".ssh", "known_hosts")
 	if info, err := os.Stat(knownHosts); err == nil && !info.IsDir() {
 		data, err := os.ReadFile(knownHosts)

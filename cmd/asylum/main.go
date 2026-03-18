@@ -19,11 +19,15 @@ import (
 
 var version = "dev"
 
+func die(format string, args ...any) {
+	log.Error(format, args...)
+	os.Exit(1)
+}
+
 func main() {
 	flags, positional, passthrough, err := parseArgs(os.Args[1:])
 	if err != nil {
-		log.Error("%v", err)
-		os.Exit(1)
+		die("%v", err)
 	}
 
 	if flags.Help {
@@ -43,22 +47,19 @@ func main() {
 
 	containerMode, isSSHInit, extraArgs, err := resolveMode(positional, passthrough)
 	if err != nil {
-		log.Error("%v", err)
-		os.Exit(1)
+		die("%v", err)
 	}
 
 	if isSSHInit {
 		if err := ssh.Init(); err != nil {
-			log.Error("%v", err)
-			os.Exit(1)
+			die("%v", err)
 		}
 		return
 	}
 
 	projectDir, err := filepath.Abs(".")
 	if err != nil {
-		log.Error("resolve project dir: %v", err)
-		os.Exit(1)
+		die("resolve project dir: %v", err)
 	}
 
 	cfg, err := config.Load(projectDir, config.CLIFlags{
@@ -68,8 +69,7 @@ func main() {
 		Java:    flags.Java,
 	})
 	if err != nil {
-		log.Error("load config: %v", err)
-		os.Exit(1)
+		die("load config: %v", err)
 	}
 
 	agentName := cfg.Agent
@@ -79,25 +79,21 @@ func main() {
 
 	a, err := agent.Get(agentName)
 	if err != nil {
-		log.Error("%v", err)
-		os.Exit(1)
+		die("%v", err)
 	}
 
 	if err := docker.DockerAvailable(); err != nil {
-		log.Error("%v", err)
-		os.Exit(1)
+		die("%v", err)
 	}
 
 	baseRebuilt, err := image.EnsureBase(version, flags.Rebuild)
 	if err != nil {
-		log.Error("%v", err)
-		os.Exit(1)
+		die("%v", err)
 	}
 
 	imageTag, err := image.EnsureProject(cfg.Packages, version, baseRebuilt, flags.Rebuild)
 	if err != nil {
-		log.Error("%v", err)
-		os.Exit(1)
+		die("%v", err)
 	}
 
 	args, err := container.RunArgs(container.RunOpts{
@@ -110,14 +106,12 @@ func main() {
 		ExtraArgs:  extraArgs,
 	})
 	if err != nil {
-		log.Error("%v", err)
-		os.Exit(1)
+		die("%v", err)
 	}
 
 	dockerBin, err := exec.LookPath("docker")
 	if err != nil {
-		log.Error("docker not found in PATH")
-		os.Exit(1)
+		die("docker not found in PATH")
 	}
 
 	if containerMode == container.ModeAgent {
@@ -130,8 +124,7 @@ func main() {
 
 	fullArgs := append([]string{"docker"}, args...)
 	if err := syscall.Exec(dockerBin, fullArgs, os.Environ()); err != nil {
-		log.Error("exec docker: %v", err)
-		os.Exit(1)
+		die("exec docker: %v", err)
 	}
 }
 
@@ -153,6 +146,14 @@ func parseArgs(args []string) (cliFlags, []string, []string, error) {
 	var passthrough []string
 
 	i := 0
+	next := func(flag string) (string, error) {
+		if i+1 < len(args) {
+			i += 2
+			return args[i-1], nil
+		}
+		return "", fmt.Errorf("flag %q requires a value", flag)
+	}
+
 	for i < len(args) {
 		arg := args[i]
 
@@ -161,38 +162,25 @@ func parseArgs(args []string) (cliFlags, []string, []string, error) {
 			break
 		}
 
+		var err error
 		switch {
 		case arg == "-a" || arg == "--agent":
-			if i+1 < len(args) {
-				flags.Agent = args[i+1]
-				i += 2
-			} else {
-				return cliFlags{}, nil, nil, fmt.Errorf("flag %q requires a value", arg)
-			}
+			flags.Agent, err = next(arg)
 		case strings.HasPrefix(arg, "-a") && len(arg) > 2 && arg[2] != '-':
 			flags.Agent = arg[2:]
 			i++
 		case arg == "-p":
-			if i+1 < len(args) {
-				flags.Ports = append(flags.Ports, args[i+1])
-				i += 2
-			} else {
-				return cliFlags{}, nil, nil, fmt.Errorf("flag %q requires a value", arg)
+			var p string
+			if p, err = next(arg); err == nil {
+				flags.Ports = append(flags.Ports, p)
 			}
 		case arg == "-v":
-			if i+1 < len(args) {
-				flags.Volumes = append(flags.Volumes, args[i+1])
-				i += 2
-			} else {
-				return cliFlags{}, nil, nil, fmt.Errorf("flag %q requires a value", arg)
+			var v string
+			if v, err = next(arg); err == nil {
+				flags.Volumes = append(flags.Volumes, v)
 			}
 		case arg == "--java":
-			if i+1 < len(args) {
-				flags.Java = args[i+1]
-				i += 2
-			} else {
-				return cliFlags{}, nil, nil, fmt.Errorf("flag %q requires a value", arg)
-			}
+			flags.Java, err = next(arg)
 		case arg == "-n" || arg == "--new":
 			flags.New = true
 			i++
@@ -219,6 +207,9 @@ func parseArgs(args []string) (cliFlags, []string, []string, error) {
 			} else {
 				i++
 			}
+		}
+		if err != nil {
+			return cliFlags{}, nil, nil, err
 		}
 	}
 
