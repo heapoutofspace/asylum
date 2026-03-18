@@ -182,9 +182,10 @@ func TestSafeHostname(t *testing.T) {
 
 func TestAppendPorts(t *testing.T) {
 	tests := []struct {
-		name  string
-		ports []string
-		want  []string
+		name    string
+		ports   []string
+		want    []string
+		wantErr bool
 	}{
 		{
 			name:  "no ports",
@@ -206,11 +207,45 @@ func TestAppendPorts(t *testing.T) {
 			ports: []string{"3000", "4000:5000"},
 			want:  []string{"-p", "3000:3000", "-p", "4000:5000"},
 		},
+		{
+			name:    "non-numeric port rejected",
+			ports:   []string{"abc"},
+			wantErr: true,
+		},
+		{
+			name:    "port zero rejected",
+			ports:   []string{"0"},
+			wantErr: true,
+		},
+		{
+			name:    "port above 65535 rejected",
+			ports:   []string{"70000"},
+			wantErr: true,
+		},
+		{
+			name:    "invalid host in mapping rejected",
+			ports:   []string{"abc:8080"},
+			wantErr: true,
+		},
+		{
+			name:    "invalid container in mapping rejected",
+			ports:   []string{"8080:abc"},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := appendPorts([]string{}, tt.ports)
+			got, err := appendPorts([]string{}, tt.ports)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("appendPorts(%v) = %v, want %v", tt.ports, got, tt.want)
 			}

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/inventage-ai/asylum/internal/agent"
@@ -66,7 +67,10 @@ func RunArgs(opts RunOpts) ([]string, error) {
 		return nil, err
 	}
 	args = appendEnvVars(args, opts)
-	args = appendPorts(args, opts.Config.Ports)
+	args, err = appendPorts(args, opts.Config.Ports)
+	if err != nil {
+		return nil, err
+	}
 
 	if envFile := filepath.Join(opts.ProjectDir, ".env"); fileExists(envFile) {
 		args = append(args, "--env-file", envFile)
@@ -193,15 +197,27 @@ func appendEnvVars(args []string, opts RunOpts) []string {
 	return args
 }
 
-func appendPorts(args []string, ports []string) []string {
+func validPort(s string) bool {
+	n, err := strconv.Atoi(s)
+	return err == nil && n > 0 && n <= 65535
+}
+
+func appendPorts(args []string, ports []string) ([]string, error) {
 	for _, p := range ports {
 		if strings.Contains(p, ":") {
+			parts := strings.SplitN(p, ":", 2)
+			if !validPort(parts[0]) || !validPort(parts[1]) {
+				return nil, fmt.Errorf("invalid port mapping %q: ports must be between 1 and 65535", p)
+			}
 			args = append(args, "-p", p)
 		} else {
+			if !validPort(p) {
+				return nil, fmt.Errorf("invalid port %q: must be between 1 and 65535", p)
+			}
 			args = append(args, "-p", p+":"+p)
 		}
 	}
-	return args
+	return args, nil
 }
 
 func ExecArgs(containerName string, mode Mode, extraArgs []string) ([]string, error) {
