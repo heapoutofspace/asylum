@@ -76,6 +76,18 @@ if [ -d "/home/claude/.ssh" ]; then
     chmod 644 /home/claude/.ssh/known_hosts 2>/dev/null || true
 fi
 
+# Restore Claude config from backup if missing or incomplete (no auth)
+if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+    cfg="$CLAUDE_CONFIG_DIR/.claude.json"
+    if [ ! -f "$cfg" ] || ! grep -q '"oauthAccount"' "$cfg" 2>/dev/null; then
+        latest=$(ls -t "$CLAUDE_CONFIG_DIR/backups/.claude.json.backup."* 2>/dev/null | head -1)
+        if [ -n "$latest" ] && grep -q '"oauthAccount"' "$latest" 2>/dev/null; then
+            cp "$latest" "$cfg"
+            echo "Restored Claude config from backup"
+        fi
+    fi
+fi
+
 # Translate host direnv approvals to container paths
 if [ -d "/tmp/host_direnv_allow" ] && [ -n "$HOST_PROJECT_DIR" ] && [ -f "$HOST_PROJECT_DIR/.envrc" ]; then
     mkdir -p /home/claude/.local/share/direnv/allow
