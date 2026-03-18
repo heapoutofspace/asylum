@@ -149,27 +149,14 @@ func downloadAndReplace(url, binPath string) error {
 	tmpPath := tmp.Name()
 	defer os.Remove(tmpPath)
 
-	resp, err := http.Get(url)
-	if err != nil {
-		tmp.Close()
-		return fmt.Errorf("download: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		tmp.Close()
-		return fmt.Errorf("download: HTTP %d", resp.StatusCode)
-	}
-
-	written, err := io.Copy(tmp, resp.Body)
-	if err != nil {
-		tmp.Close()
-		return fmt.Errorf("download: %w", err)
-	}
+	written, err := downloadToFile(tmp, url)
 	tmp.Close()
+	if err != nil {
+		return err
+	}
 
-	if resp.ContentLength > 0 && written != resp.ContentLength {
-		return fmt.Errorf("download incomplete: got %d bytes, expected %d", written, resp.ContentLength)
+	if written.contentLength > 0 && written.bytes != written.contentLength {
+		return fmt.Errorf("download incomplete: got %d bytes, expected %d", written.bytes, written.contentLength)
 	}
 
 	if err := os.Chmod(tmpPath, 0755); err != nil {
@@ -184,4 +171,27 @@ func downloadAndReplace(url, binPath string) error {
 	}
 
 	return nil
+}
+
+type downloadResult struct {
+	bytes         int64
+	contentLength int64
+}
+
+func downloadToFile(w io.Writer, url string) (downloadResult, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return downloadResult{}, fmt.Errorf("download: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return downloadResult{}, fmt.Errorf("download: HTTP %d", resp.StatusCode)
+	}
+
+	n, err := io.Copy(w, resp.Body)
+	if err != nil {
+		return downloadResult{}, fmt.Errorf("download: %w", err)
+	}
+	return downloadResult{bytes: n, contentLength: resp.ContentLength}, nil
 }
