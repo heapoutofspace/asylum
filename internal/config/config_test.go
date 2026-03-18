@@ -214,6 +214,10 @@ func TestParseVolume(t *testing.T) {
 func TestLoad(t *testing.T) {
 	dir := t.TempDir()
 
+	// Redirect HOME so os.UserHomeDir returns a temp dir with no config
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+
 	// Create project config
 	projectConfig := `agent: gemini
 ports:
