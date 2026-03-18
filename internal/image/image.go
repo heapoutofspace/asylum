@@ -117,6 +117,7 @@ var knownPackageTypes = map[string]bool{
 }
 
 var validPackageName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9+\-.@:/~_]*$`)
+var validJavaVersion = regexp.MustCompile(`^[0-9]+(\.[0-9]+)*$`)
 
 func validatePackageNames(pkgType string, names []string) error {
 	for _, name := range names {
@@ -173,6 +174,9 @@ func generateProjectDockerfile(packages map[string][]string, javaVersion string)
 	writeUserRuns("", packages["run"])
 
 	if javaVersion != "" && !preinstalledJava[javaVersion] {
+		if !validJavaVersion.MatchString(javaVersion) {
+			return "", fmt.Errorf("invalid java version %q", javaVersion)
+		}
 		b.WriteString("\nUSER claude\n")
 		b.WriteString("RUN $HOME/.local/bin/mise install java@" + javaVersion + " && $HOME/.local/bin/mise use --global java@" + javaVersion + "\n")
 	}
