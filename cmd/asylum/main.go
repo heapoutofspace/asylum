@@ -20,7 +20,11 @@ import (
 var version = "dev"
 
 func main() {
-	flags, positional, passthrough := parseArgs(os.Args[1:])
+	flags, positional, passthrough, err := parseArgs(os.Args[1:])
+	if err != nil {
+		log.Error("%v", err)
+		os.Exit(1)
+	}
 
 	if flags.Help {
 		printUsage()
@@ -143,7 +147,7 @@ type cliFlags struct {
 	Version bool
 }
 
-func parseArgs(args []string) (cliFlags, []string, []string) {
+func parseArgs(args []string) (cliFlags, []string, []string, error) {
 	var flags cliFlags
 	var positional []string
 	var passthrough []string
@@ -163,7 +167,7 @@ func parseArgs(args []string) (cliFlags, []string, []string) {
 				flags.Agent = args[i+1]
 				i += 2
 			} else {
-				i++
+				return cliFlags{}, nil, nil, fmt.Errorf("flag %q requires a value", arg)
 			}
 		case strings.HasPrefix(arg, "-a") && len(arg) > 2 && arg[2] != '-':
 			flags.Agent = arg[2:]
@@ -173,21 +177,21 @@ func parseArgs(args []string) (cliFlags, []string, []string) {
 				flags.Ports = append(flags.Ports, args[i+1])
 				i += 2
 			} else {
-				i++
+				return cliFlags{}, nil, nil, fmt.Errorf("flag %q requires a value", arg)
 			}
 		case arg == "-v":
 			if i+1 < len(args) {
 				flags.Volumes = append(flags.Volumes, args[i+1])
 				i += 2
 			} else {
-				i++
+				return cliFlags{}, nil, nil, fmt.Errorf("flag %q requires a value", arg)
 			}
 		case arg == "--java":
 			if i+1 < len(args) {
 				flags.Java = args[i+1]
 				i += 2
 			} else {
-				i++
+				return cliFlags{}, nil, nil, fmt.Errorf("flag %q requires a value", arg)
 			}
 		case arg == "-n" || arg == "--new":
 			flags.New = true
@@ -218,7 +222,7 @@ func parseArgs(args []string) (cliFlags, []string, []string) {
 		}
 	}
 
-	return flags, positional, passthrough
+	return flags, positional, passthrough, nil
 }
 
 func resolveMode(positional, passthrough []string) (container.Mode, bool, []string, error) {

@@ -105,8 +105,10 @@ func TestResolveMode(t *testing.T) {
 }
 
 func TestParseArgs_Version(t *testing.T) {
-	flags, positional, passthrough := parseArgs([]string{"--version"})
-
+	flags, positional, passthrough, err := parseArgs([]string{"--version"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if !flags.Version {
 		t.Error("expected Version flag to be true")
 	}
@@ -119,19 +121,28 @@ func TestParseArgs_Version(t *testing.T) {
 }
 
 func TestParseArgs_AgentShorthand(t *testing.T) {
-	flags, _, _ := parseArgs([]string{"-a", "gemini"})
+	flags, _, _, err := parseArgs([]string{"-a", "gemini"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if flags.Agent != "gemini" {
 		t.Errorf("agent = %q, want %q", flags.Agent, "gemini")
 	}
 
-	flags2, _, _ := parseArgs([]string{"-acodex"})
+	flags2, _, _, err2 := parseArgs([]string{"-acodex"})
+	if err2 != nil {
+		t.Fatalf("unexpected error: %v", err2)
+	}
 	if flags2.Agent != "codex" {
 		t.Errorf("agent = %q, want %q", flags2.Agent, "codex")
 	}
 }
 
 func TestParseArgs_DoubleDashSeparator(t *testing.T) {
-	flags, positional, passthrough := parseArgs([]string{"--", "fix", "the", "bug"})
+	flags, positional, passthrough, err := parseArgs([]string{"--", "fix", "the", "bug"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if flags.Version || flags.New {
 		t.Error("no flags expected before --")
 	}
@@ -144,7 +155,10 @@ func TestParseArgs_DoubleDashSeparator(t *testing.T) {
 }
 
 func TestParseArgs_UnknownFlagPassthrough(t *testing.T) {
-	_, _, passthrough := parseArgs([]string{"--unknown-flag", "val"})
+	_, _, passthrough, err := parseArgs([]string{"--unknown-flag", "val"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(passthrough) == 0 || passthrough[0] != "--unknown-flag" {
 		t.Errorf("unknown flag should be in passthrough, got %v", passthrough)
 	}
@@ -152,7 +166,10 @@ func TestParseArgs_UnknownFlagPassthrough(t *testing.T) {
 
 func TestParseArgs_PositionalArgRouting(t *testing.T) {
 	// "shell" is a known positional — no passthrough collected
-	_, positional, passthrough := parseArgs([]string{"shell"})
+	_, positional, passthrough, err := parseArgs([]string{"shell"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(positional) != 1 || positional[0] != "shell" {
 		t.Errorf("positional = %v, want [shell]", positional)
 	}
@@ -161,7 +178,10 @@ func TestParseArgs_PositionalArgRouting(t *testing.T) {
 	}
 
 	// Unknown positional routes everything after it to passthrough
-	_, positional2, passthrough2 := parseArgs([]string{"run", "arg1", "arg2"})
+	_, positional2, passthrough2, err2 := parseArgs([]string{"run", "arg1", "arg2"})
+	if err2 != nil {
+		t.Fatalf("unexpected error: %v", err2)
+	}
 	if len(positional2) != 1 || positional2[0] != "run" {
 		t.Errorf("positional = %v, want [run]", positional2)
 	}
