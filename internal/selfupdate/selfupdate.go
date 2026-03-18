@@ -41,10 +41,44 @@ func ResolveChannel(devFlag bool, configChannel string) string {
 	return "stable"
 }
 
+// SafeRun is a stripped-down emergency updater. Always pulls the dev release,
+// no version checks, no changelog — just download and replace.
+func SafeRun(execPath string) error {
+	binPath, err := filepath.EvalSymlinks(execPath)
+	if err != nil {
+		return fmt.Errorf("resolve binary path: %w", err)
+	}
+
+	rel, err := fetchRelease("dev")
+	if err != nil {
+		return err
+	}
+
+	name := AssetName()
+	var downloadURL string
+	for _, a := range rel.Assets {
+		if a.Name == name {
+			downloadURL = a.BrowserDownloadURL
+			break
+		}
+	}
+	if downloadURL == "" {
+		return fmt.Errorf("no asset %q in release %s", name, rel.TagName)
+	}
+
+	fmt.Println("downloading dev release...")
+	if err := downloadAndReplace(downloadURL, binPath); err != nil {
+		return err
+	}
+
+	fmt.Println("done")
+	return nil
+}
+
 // Run performs the self-update. It resolves the target binary path by following
 // symlinks from execPath, fetches the appropriate release, and atomically
 // replaces the binary.
-func Run(currentVersion, channel, execPath string) error {
+func Run(currentVersion, currentCommit, channel, execPath string) error {
 	binPath, err := filepath.EvalSymlinks(execPath)
 	if err != nil {
 		return fmt.Errorf("resolve binary path: %w", err)
@@ -79,12 +113,62 @@ func Run(currentVersion, channel, execPath string) error {
 	}
 
 	// Report the version baked into the downloaded binary
+	newVersion := version
+	var newCommit string
 	if out, err := exec.Command(binPath, "--version", "--short").Output(); err == nil {
-		log.Success("updated to %s", strings.TrimSpace(string(out)))
-	} else {
-		log.Success("updated to %s", version)
+		newVersion = strings.TrimSpace(string(out))
+		// Extract commit hash from "dev (abc1234)" format
+		if i := strings.Index(newVersion, "("); i != -1 {
+			if j := strings.Index(newVersion[i:], ")"); j != -1 {
+				newCommit = newVersion[i+1 : i+j]
+			}
+		}
+	}
+	log.Success("updated to %s", newVersion)
+
+	if channel == "dev" && currentCommit != "" && newCommit != "" && currentCommit != newCommit {
+		showChangelog(currentCommit, newCommit)
 	}
 	return nil
+}
+
+func showChangelog(fromCommit, toCommit string) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/compare/%s...%s", repo, fromCommit, toCommit)
+	resp, err := http.Get(url)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		TotalCommits int `json:"total_commits"`
+		Commits      []struct {
+			Commit struct {
+				Message string `json:"message"`
+			} `json:"commit"`
+		} `json:"commits"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil || result.TotalCommits == 0 {
+		return
+	}
+
+	log.Info("%d commit(s) since %s:", result.TotalCommits, fromCommit)
+	// Show up to 5 most recent commits (API returns oldest first)
+	commits := result.Commits
+	start := 0
+	if len(commits) > 5 {
+		start = len(commits) - 5
+	}
+	for _, c := range commits[start:] {
+		msg, _, _ := strings.Cut(c.Commit.Message, "\n")
+		fmt.Printf("  %s\n", msg)
+	}
+	if start > 0 {
+		fmt.Printf("  ... and %d more\n", start)
+	}
 }
 
 func fetchRelease(channel string) (release, error) {

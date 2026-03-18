@@ -60,16 +60,22 @@ func main() {
 	}
 
 	if subcommand == "self-update" {
+		execPath, err := os.Executable()
+		if err != nil {
+			die("resolve executable: %v", err)
+		}
+		if flags.Safe {
+			if err := selfupdate.SafeRun(execPath); err != nil {
+				die("%v", err)
+			}
+			return
+		}
 		cfg, err := config.Load(projectDir, config.CLIFlags{})
 		if err != nil {
 			die("load config: %v", err)
 		}
 		channel := selfupdate.ResolveChannel(flags.Dev, cfg.ReleaseChannel)
-		execPath, err := os.Executable()
-		if err != nil {
-			die("resolve executable: %v", err)
-		}
-		if err := selfupdate.Run(version, channel, execPath); err != nil {
+		if err := selfupdate.Run(version, commit, channel, execPath); err != nil {
 			die("%v", err)
 		}
 		return
@@ -162,6 +168,7 @@ type cliFlags struct {
 	Short   bool
 	Admin   bool
 	Dev     bool
+	Safe    bool
 }
 
 func parseArgs(args []string) (cliFlags, string, []string, error) {
@@ -262,12 +269,15 @@ func parseArgs(args []string) (cliFlags, string, []string, error) {
 			subcommand = "self-update"
 			i++
 			for i < len(args) {
-				if args[i] == "--dev" {
+				switch args[i] {
+				case "--dev":
 					flags.Dev = true
-					i++
-				} else {
-					return cliFlags{}, "", nil, fmt.Errorf("unknown flag %q for self-update (only --dev is supported)", args[i])
+				case "--safe":
+					flags.Safe = true
+				default:
+					return cliFlags{}, "", nil, fmt.Errorf("unknown flag %q for self-update", args[i])
 				}
+				i++
 			}
 		case arg == "run":
 			subcommand = "run"
@@ -417,6 +427,7 @@ Usage:
   asylum [flags] run <cmd>      Run command in container
   asylum ssh-init               Initialize SSH directory
   asylum self-update [--dev]    Update to latest version
+  asylum self-update --safe     Emergency update (always dev, no checks)
 
 Flags:
   -a, --agent <name>   Agent: claude, gemini, codex (default: claude)
