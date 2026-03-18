@@ -122,3 +122,64 @@ func TestEntrypointEnvironment(t *testing.T) {
 	}
 }
 
+func TestEntrypointClaudeConfigRestore(t *testing.T) {
+	ensureBaseImage(t)
+	tmp := t.TempDir()
+	backupDir := filepath.Join(tmp, "backups")
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	backup := `{"oauthAccount":"test","hasCompletedOnboarding":true}`
+	if err := os.WriteFile(filepath.Join(backupDir, ".claude.json.backup.1000"), []byte(backup), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	out := dockerRunWithVolumeAndEnv(t, tmp+":/home/claude/.claude",
+		map[string]string{"CLAUDE_CONFIG_DIR": "/home/claude/.claude"},
+		"cat /home/claude/.claude/.claude.json")
+	if !strings.Contains(out, `"oauthAccount"`) {
+		t.Fatalf("expected restored config with oauthAccount, got: %s", out)
+	}
+}
+
+func TestEntrypointClaudeConfigRestoreSkipsWithoutAuth(t *testing.T) {
+	ensureBaseImage(t)
+	tmp := t.TempDir()
+	backupDir := filepath.Join(tmp, "backups")
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(backupDir, ".claude.json.backup.1000"), []byte(`{"minimal":true}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	out := dockerRunWithVolumeAndEnv(t, tmp+":/home/claude/.claude",
+		map[string]string{"CLAUDE_CONFIG_DIR": "/home/claude/.claude"},
+		"test -f /home/claude/.claude/.claude.json && echo EXISTS || echo MISSING")
+	if !strings.Contains(out, "MISSING") {
+		t.Fatalf("expected MISSING when backup has no auth, got: %s", out)
+	}
+}
+
+func TestEntrypointClaudeConfigNoRestoreWhenPresent(t *testing.T) {
+	ensureBaseImage(t)
+	tmp := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmp, ".claude.json"), []byte(`{"oauthAccount":"original"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	backupDir := filepath.Join(tmp, "backups")
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(backupDir, ".claude.json.backup.1000"), []byte(`{"oauthAccount":"backup"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	out := dockerRunWithVolumeAndEnv(t, tmp+":/home/claude/.claude",
+		map[string]string{"CLAUDE_CONFIG_DIR": "/home/claude/.claude"},
+		"cat /home/claude/.claude/.claude.json")
+	if !strings.Contains(out, `"original"`) {
+		t.Fatalf("expected original config preserved, got: %s", out)
+	}
+}
+

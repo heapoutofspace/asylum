@@ -105,6 +105,21 @@ func dockerRunWithProjectDir(t *testing.T, projDir, script string) string {
 	return strings.TrimSpace(string(out))
 }
 
+func dockerRunWithVolumeAndEnv(t *testing.T, volume string, env map[string]string, script string) string {
+	t.Helper()
+	args := []string{"run", "--rm", "-v", volume}
+	for k, v := range env {
+		args = append(args, "-e", k+"="+v)
+	}
+	args = append(args, "asylum:latest", "bash", "-c", script)
+	cmd := exec.Command("docker", args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("docker run failed: %v\noutput: %s", err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
 func parseKeyValues(output string) map[string]string {
 	m := make(map[string]string)
 	for _, line := range strings.Split(output, "\n") {
