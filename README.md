@@ -43,6 +43,7 @@ asylum [flags] shell          Interactive zsh shell
 asylum [flags] shell --admin  Admin shell with sudo notice
 asylum [flags] run <cmd>      Run command in container
 asylum ssh-init               Set up SSH keys for containers
+asylum self-update [--dev]    Update to latest version
 ```
 
 ### Flags
@@ -52,7 +53,7 @@ asylum ssh-init               Set up SSH keys for containers
 | `-a`, `--agent` | Agent to use: `claude`, `gemini`, `codex` (default: `claude`) |
 | `-p <port>` | Forward a port (repeatable, e.g. `-p 3000 -p 8080:80`) |
 | `-v <volume>` | Mount a volume (repeatable, e.g. `-v ~/data:/data:ro`) |
-| `--java <version>` | Select Java version (`17`, `21`, `25`) |
+| `--java <version>` | Select Java version (`17`, `21`, `25` pre-installed; others installed on demand) |
 | `-n`, `--new` | Start a fresh session (skip auto-resume) |
 | `--rebuild` | Force rebuild the Docker image |
 | `--cleanup` | Remove Asylum images and cached data |
@@ -119,7 +120,7 @@ Images auto-rebuild when the Dockerfile or your packages config changes (hash-ba
 
 ### What's in the container
 
-- **Languages**: Python 3 + uv, Node.js LTS + NVM, Java 17/21/25 + SDKMAN
+- **Languages**: Python 3 + uv, Node.js LTS + fnm, Java 17/21/25 + mise
 - **Build tools**: gcc, g++, make, cmake
 - **Package managers**: npm, yarn, pnpm, pip, uv, poetry, maven, gradle
 - **Dev tools**: git, vim, nano, tmux, htop, ripgrep, fd, jq, yq, direnv
@@ -164,6 +165,20 @@ asylum --cleanup
 ```
 
 Removes Asylum Docker images and optionally clears caches. Agent config (`~/.asylum/agents/`) is preserved since it contains auth tokens.
+
+## Self-Update
+
+```sh
+asylum self-update          # Update to latest stable release
+asylum self-update --dev    # Update to latest dev build from main
+```
+
+To always track dev builds, set `release-channel: dev` in your config:
+
+```yaml
+# ~/.asylum/config.yaml
+release-channel: dev
+```
 
 ## Building from Source
 
