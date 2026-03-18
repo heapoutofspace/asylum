@@ -156,7 +156,7 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	vol(histDir, "/home/claude/.shell_history", "rw")
 
 	// Agent config
-	agentDir := expandTilde(opts.Agent.AsylumConfigDir(), home)
+	agentDir := config.ExpandTilde(opts.Agent.AsylumConfigDir(), home)
 	vol(agentDir, opts.Agent.ContainerConfigDir(), "")
 
 	// Direnv
@@ -254,13 +254,13 @@ func containerCommand(opts RunOpts) []string {
 
 // ensureAgentConfig returns true if the config was freshly created (first run).
 func ensureAgentConfig(home string, a agent.Agent) (bool, error) {
-	agentDir := expandTilde(a.AsylumConfigDir(), home)
+	agentDir := config.ExpandTilde(a.AsylumConfigDir(), home)
 
 	if dirExists(agentDir) {
 		return false, nil
 	}
 
-	nativeDir := expandTilde(a.NativeConfigDir(), home)
+	nativeDir := config.ExpandTilde(a.NativeConfigDir(), home)
 	if dirExists(nativeDir) {
 		log.Info("seeding %s config from %s", a.Name(), nativeDir)
 		return true, copyDir(nativeDir, agentDir)
@@ -304,13 +304,6 @@ func copyDir(src, dst string) error {
 	})
 }
 
-func expandTilde(path, home string) string {
-	if strings.HasPrefix(path, "~/") {
-		return filepath.Join(home, path[2:])
-	}
-	return path
-}
-
 // resolveGitWorktree detects if projectDir is a git worktree and returns
 // the worktree-specific gitdir and the common (main repo) gitdir.
 // Returns empty strings if the project is not a worktree.
@@ -349,6 +342,7 @@ func resolveGitWorktree(projectDir string) (worktreeDir, commonDir string) {
 
 	return gitdir, common
 }
+
 
 func fileExists(path string) bool {
 	info, err := os.Stat(path)

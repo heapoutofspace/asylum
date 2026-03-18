@@ -53,10 +53,7 @@ func Load(projectDir string, flags CLIFlags) (Config, error) {
 	}
 
 	if java := readToolVersionsJava(projectDir); java != "" && cfg.Versions["java"] == "" {
-		if cfg.Versions == nil {
-			cfg.Versions = make(map[string]string)
-		}
-		cfg.Versions["java"] = java
+		cfg.Versions = setVersion(cfg.Versions, "java", java)
 	}
 
 	cfg = applyFlags(cfg, flags)
@@ -124,10 +121,7 @@ func applyFlags(cfg Config, flags CLIFlags) Config {
 		cfg.Agent = flags.Agent
 	}
 	if flags.Java != "" {
-		if cfg.Versions == nil {
-			cfg.Versions = make(map[string]string)
-		}
-		cfg.Versions["java"] = flags.Java
+		cfg.Versions = setVersion(cfg.Versions, "java", flags.Java)
 	}
 	cfg.Ports = slices.Concat(cfg.Ports, flags.Ports)
 	cfg.Volumes = slices.Concat(cfg.Volumes, flags.Volumes)
@@ -140,15 +134,20 @@ func readToolVersionsJava(projectDir string) string {
 		return ""
 	}
 	for _, line := range strings.Split(string(data), "\n") {
-		name, version, ok := strings.Cut(line, " ")
-		if !ok {
-			name, version, ok = strings.Cut(line, "\t")
-		}
-		if ok && name == "java" {
-			return strings.TrimSpace(version)
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == "java" {
+			return fields[1]
 		}
 	}
 	return ""
+}
+
+func setVersion(m map[string]string, key, value string) map[string]string {
+	if m == nil {
+		m = make(map[string]string)
+	}
+	m[key] = value
+	return m
 }
 
 var mountOptions = map[string]bool{
@@ -158,34 +157,35 @@ var mountOptions = map[string]bool{
 	"nocopy": true, "consistent": true, "cached": true, "delegated": true,
 }
 
-func ParseVolume(raw string, homeDir string) Volume {
-	expandTilde := func(p string) string {
-		if strings.HasPrefix(p, "~/") {
-			return filepath.Join(homeDir, p[2:])
-		}
-		if p == "~" {
-			return homeDir
-		}
-		return p
+// ExpandTilde replaces a leading ~/ with homeDir. A bare "~" returns homeDir.
+func ExpandTilde(path, homeDir string) string {
+	if strings.HasPrefix(path, "~/") {
+		return filepath.Join(homeDir, path[2:])
 	}
+	if path == "~" {
+		return homeDir
+	}
+	return path
+}
 
+func ParseVolume(raw string, homeDir string) Volume {
 	parts := strings.Split(raw, ":")
 
 	switch len(parts) {
 	case 1:
 		// "/data" → same path both sides
-		host := expandTilde(parts[0])
+		host := ExpandTilde(parts[0], homeDir)
 		return Volume{Host: host, Container: host}
 	case 2:
 		if mountOptions[parts[1]] {
 			// "/data:ro" → shorthand with option
-			host := expandTilde(parts[0])
+			host := ExpandTilde(parts[0], homeDir)
 			return Volume{Host: host, Container: host, Options: parts[1]}
 		}
 		// "/host:/container"
-		return Volume{Host: expandTilde(parts[0]), Container: parts[1]}
+		return Volume{Host: ExpandTilde(parts[0], homeDir), Container: parts[1]}
 	default:
 		// "/host:/container:opts" or more
-		return Volume{Host: expandTilde(parts[0]), Container: parts[1], Options: strings.Join(parts[2:], ":")}
+		return Volume{Host: ExpandTilde(parts[0], homeDir), Container: parts[1], Options: strings.Join(parts[2:], ":")}
 	}
 }
