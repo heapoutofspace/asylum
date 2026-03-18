@@ -131,7 +131,7 @@ func generateProjectDockerfile(packages map[string][]string) (string, error) {
 			return "", fmt.Errorf("unknown package type %q (valid: apt, npm, pip, run)", k)
 		}
 	}
-	for _, pkgType := range []string{"apt", "npm"} {
+	for _, pkgType := range []string{"apt", "npm", "pip"} {
 		if err := validatePackageNames(pkgType, packages[pkgType]); err != nil {
 			return "", err
 		}
