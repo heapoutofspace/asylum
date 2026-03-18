@@ -37,16 +37,13 @@ fi
 if command -v mise >/dev/null 2>&1; then
     eval "$(mise activate bash)"
     if [ -n "${ASYLUM_JAVA_VERSION:-}" ]; then
-        # Must match preinstalledJava in internal/image/image.go
+        # Pre-installed versions use the temurin- prefix; others were installed
+        # by the project Dockerfile and use the version string as-is
         case "${ASYLUM_JAVA_VERSION}" in
-            17|21|25)
-                mise use --global java@temurin-"${ASYLUM_JAVA_VERSION}" >/dev/null 2>&1
-                eval "$(mise env)"
-                ;;
-            *)
-                echo "Warning: ASYLUM_JAVA_VERSION '${ASYLUM_JAVA_VERSION}' is not a pre-installed version (17, 21, 25). Use versions.java in config to install it."
-                ;;
+            17|21|25) mise use --global java@temurin-"${ASYLUM_JAVA_VERSION}" >/dev/null 2>&1 ;;
+            *)        mise use --global java@"${ASYLUM_JAVA_VERSION}" >/dev/null 2>&1 ;;
         esac
+        eval "$(mise env)"
     fi
 fi
 
