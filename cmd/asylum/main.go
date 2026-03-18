@@ -250,13 +250,17 @@ func resolveMode(positional, passthrough []string) (container.Mode, bool, []stri
 func runCleanup() {
 	log.Info("removing asylum images...")
 
-	docker.RemoveImages("asylum:latest")
+	if err := docker.RemoveImages("asylum:latest"); err != nil {
+		log.Error("remove asylum:latest: %v", err)
+	}
 
 	out, err := exec.Command("docker", "images", "--format", "{{.Repository}}:{{.Tag}}", "--filter", "reference=asylum:proj-*").Output()
 	if err == nil {
 		for _, img := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 			if img != "" {
-				docker.RemoveImages(img)
+				if err := docker.RemoveImages(img); err != nil {
+					log.Error("remove %s: %v", img, err)
+				}
 			}
 		}
 	}
