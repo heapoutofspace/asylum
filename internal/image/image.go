@@ -46,16 +46,13 @@ func EnsureBase(version string, noCache bool) (bool, error) {
 		return false, err
 	}
 
-	uid := fmt.Sprintf("%d", os.Getuid())
-	gid := fmt.Sprintf("%d", os.Getgid())
-
 	labels := map[string]string{
 		"asylum.hash":    hash,
 		"asylum.version": version,
 	}
 	buildArgs := map[string]string{
-		"USER_ID":  uid,
-		"GROUP_ID": gid,
+		"USER_ID":  fmt.Sprintf("%d", os.Getuid()),
+		"GROUP_ID": fmt.Sprintf("%d", os.Getgid()),
 		"USERNAME": "claude",
 	}
 
