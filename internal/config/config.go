@@ -5,6 +5,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -94,8 +95,8 @@ func merge(base, overlay Config) Config {
 		result.ReleaseChannel = overlay.ReleaseChannel
 	}
 
-	result.Ports = concatSlices(base.Ports, overlay.Ports)
-	result.Volumes = concatSlices(base.Volumes, overlay.Volumes)
+	result.Ports = slices.Concat(base.Ports, overlay.Ports)
+	result.Volumes = slices.Concat(base.Volumes, overlay.Volumes)
 
 	if overlay.Versions != nil {
 		merged := make(map[string]string, len(base.Versions)+len(overlay.Versions))
@@ -118,13 +119,6 @@ func merge(base, overlay Config) Config {
 	return result
 }
 
-func concatSlices(a, b []string) []string {
-	out := make([]string, 0, len(a)+len(b))
-	out = append(out, a...)
-	out = append(out, b...)
-	return out
-}
-
 func applyFlags(cfg Config, flags CLIFlags) Config {
 	if flags.Agent != "" {
 		cfg.Agent = flags.Agent
@@ -135,8 +129,8 @@ func applyFlags(cfg Config, flags CLIFlags) Config {
 		}
 		cfg.Versions["java"] = flags.Java
 	}
-	cfg.Ports = concatSlices(cfg.Ports, flags.Ports)
-	cfg.Volumes = concatSlices(cfg.Volumes, flags.Volumes)
+	cfg.Ports = slices.Concat(cfg.Ports, flags.Ports)
+	cfg.Volumes = slices.Concat(cfg.Volumes, flags.Volumes)
 	return cfg
 }
 
