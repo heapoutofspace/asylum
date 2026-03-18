@@ -17,9 +17,8 @@ import (
 const repo = "inventage-ai/asylum"
 
 type release struct {
-	TagName         string  `json:"tag_name"`
-	TargetCommitish string  `json:"target_commitish"`
-	Assets          []asset `json:"assets"`
+	TagName string  `json:"tag_name"`
+	Assets  []asset `json:"assets"`
 }
 
 type asset struct {
@@ -81,7 +80,7 @@ func Run(currentVersion, channel, execPath string) error {
 		return err
 	}
 
-	if c := shortCommit(rel.TargetCommitish); c != "" {
+	if c := fetchTagCommit(version); c != "" {
 		log.Success("updated to %s (%s)", version, c)
 	} else {
 		log.Success("updated to %s", version)
@@ -89,11 +88,27 @@ func Run(currentVersion, channel, execPath string) error {
 	return nil
 }
 
-func shortCommit(commitish string) string {
-	if len(commitish) >= 7 {
-		return commitish[:7]
+// fetchTagCommit resolves a tag to its short commit SHA via the GitHub API.
+func fetchTagCommit(tag string) string {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/git/refs/tags/%s", repo, tag)
+	resp, err := http.Get(url)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return ""
 	}
-	return commitish
+	defer resp.Body.Close()
+
+	var ref struct {
+		Object struct {
+			SHA string `json:"sha"`
+		} `json:"object"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&ref); err != nil {
+		return ""
+	}
+	if len(ref.Object.SHA) >= 7 {
+		return ref.Object.SHA[:7]
+	}
+	return ""
 }
 
 func fetchRelease(channel string) (release, error) {
