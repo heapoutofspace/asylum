@@ -11,6 +11,7 @@ if [ "${ASYLUM_DOCKER:-}" = "1" ]; then
         echo "Starting Docker daemon..."
         sudo dockerd --storage-driver=vfs --log-level=warn >/tmp/dockerd.log 2>&1 &
         DOCKERD_PID=$!
+        disown $DOCKERD_PID
         for i in $(seq 1 30); do
             if docker info >/dev/null 2>&1; then
                 echo "Docker daemon ready"
