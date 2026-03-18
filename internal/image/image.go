@@ -39,7 +39,8 @@ func EnsureBase(version string, noCache bool) (bool, error) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	if err := os.WriteFile(filepath.Join(tmpDir, "Dockerfile"), assets.Dockerfile, 0644); err != nil {
+	dfPath := filepath.Join(tmpDir, "Dockerfile")
+	if err := os.WriteFile(dfPath, assets.Dockerfile, 0644); err != nil {
 		return false, err
 	}
 	if err := os.WriteFile(filepath.Join(tmpDir, "entrypoint.sh"), assets.Entrypoint, 0755); err != nil {
@@ -56,7 +57,7 @@ func EnsureBase(version string, noCache bool) (bool, error) {
 		"USERNAME": "claude",
 	}
 
-	if err := docker.Build(tmpDir, filepath.Join(tmpDir, "Dockerfile"), baseTag, labels, buildArgs, noCache); err != nil {
+	if err := docker.Build(tmpDir, dfPath, baseTag, labels, buildArgs, noCache); err != nil {
 		return false, fmt.Errorf("build base image: %w", err)
 	}
 
