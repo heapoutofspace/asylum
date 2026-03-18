@@ -56,11 +56,18 @@ func Load(projectDir string, flags CLIFlags) (Config, error) {
 }
 
 func loadFile(path string) (Config, error) {
-	data, err := os.ReadFile(path)
+	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return Config{}, nil
 		}
+		return Config{}, err
+	}
+	if info.IsDir() {
+		return Config{}, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
 		return Config{}, err
 	}
 	var cfg Config

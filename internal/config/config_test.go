@@ -269,3 +269,20 @@ ports:
 		t.Errorf("ports %v missing 8080", cfg.Ports)
 	}
 }
+
+func TestLoadSkipsDirectoryAsConfig(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+
+	// Create ~/.asylum as a directory (as it would be in normal use)
+	os.MkdirAll(filepath.Join(homeDir, ".asylum"), 0755)
+
+	// Use home as projectDir — .asylum resolves to the ~/.asylum directory
+	cfg, err := Load(homeDir, CLIFlags{})
+	if err != nil {
+		t.Fatalf("Load should skip directories, got error: %v", err)
+	}
+	if cfg.Agent != "" {
+		t.Errorf("agent = %q, want empty", cfg.Agent)
+	}
+}
