@@ -164,6 +164,54 @@ func TestParseArgs_UnknownFlagPassthrough(t *testing.T) {
 	}
 }
 
+func TestParseArgs_Port(t *testing.T) {
+	flags, _, _, err := parseArgs([]string{"-p", "8080"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(flags.Ports) != 1 || flags.Ports[0] != "8080" {
+		t.Errorf("ports = %v, want [8080]", flags.Ports)
+	}
+
+	// repeatable
+	flags2, _, _, err2 := parseArgs([]string{"-p", "3000", "-p", "4000"})
+	if err2 != nil {
+		t.Fatalf("unexpected error: %v", err2)
+	}
+	if len(flags2.Ports) != 2 || flags2.Ports[0] != "3000" || flags2.Ports[1] != "4000" {
+		t.Errorf("ports = %v, want [3000, 4000]", flags2.Ports)
+	}
+}
+
+func TestParseArgs_Volume(t *testing.T) {
+	flags, _, _, err := parseArgs([]string{"-v", "~/data:/data"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(flags.Volumes) != 1 || flags.Volumes[0] != "~/data:/data" {
+		t.Errorf("volumes = %v, want [~/data:/data]", flags.Volumes)
+	}
+
+	// repeatable
+	flags2, _, _, err2 := parseArgs([]string{"-v", "/a:/a", "-v", "/b:/b"})
+	if err2 != nil {
+		t.Fatalf("unexpected error: %v", err2)
+	}
+	if len(flags2.Volumes) != 2 || flags2.Volumes[0] != "/a:/a" || flags2.Volumes[1] != "/b:/b" {
+		t.Errorf("volumes = %v, want [/a:/a, /b:/b]", flags2.Volumes)
+	}
+}
+
+func TestParseArgs_Java(t *testing.T) {
+	flags, _, _, err := parseArgs([]string{"--java", "21"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if flags.Java != "21" {
+		t.Errorf("java = %q, want %q", flags.Java, "21")
+	}
+}
+
 func TestParseArgs_TrailingFlagWithNoValue(t *testing.T) {
 	cases := [][]string{
 		{"-a"},
