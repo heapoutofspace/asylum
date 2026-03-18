@@ -161,11 +161,16 @@ func downloadAndReplace(url, binPath string) error {
 		return fmt.Errorf("download: HTTP %d", resp.StatusCode)
 	}
 
-	if _, err := io.Copy(tmp, resp.Body); err != nil {
+	written, err := io.Copy(tmp, resp.Body)
+	if err != nil {
 		tmp.Close()
 		return fmt.Errorf("download: %w", err)
 	}
 	tmp.Close()
+
+	if resp.ContentLength > 0 && written != resp.ContentLength {
+		return fmt.Errorf("download incomplete: got %d bytes, expected %d", written, resp.ContentLength)
+	}
 
 	if err := os.Chmod(tmpPath, 0755); err != nil {
 		return fmt.Errorf("chmod: %w", err)
