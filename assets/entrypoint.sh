@@ -150,7 +150,18 @@ fi
 # If dockerd is running, skip exec so the trap can kill it on exit.
 # Otherwise, exec replaces this shell (saves a process).
 if [ -n "${DOCKERD_PID:-}" ]; then
-    trap 'docker rm -f $(docker ps -aq) 2>/dev/null; sudo kill -9 $DOCKERD_PID 2>/dev/null' EXIT
+    PRE_EXISTING_CONTAINERS=$(docker ps -aq 2>/dev/null || true)
+    cleanup_containers() {
+        all=$(docker ps -aq 2>/dev/null || true)
+        for c in $all; do
+            case " $PRE_EXISTING_CONTAINERS " in
+                *" $c "*) ;;
+                *) docker rm -f "$c" 2>/dev/null ;;
+            esac
+        done
+        sudo kill -9 $DOCKERD_PID 2>/dev/null
+    }
+    trap cleanup_containers EXIT
     "$@"
 else
     exec "$@"
