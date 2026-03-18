@@ -65,7 +65,7 @@ func RunArgs(opts RunOpts) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	args = appendEnvVars(args, home, opts)
+	args = appendEnvVars(args, opts)
 	args = appendPorts(args, opts.Config.Ports)
 
 	if envFile := filepath.Join(opts.ProjectDir, ".env"); fileExists(envFile) {
@@ -164,7 +164,7 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	return args, nil
 }
 
-func appendEnvVars(args []string, home string, opts RunOpts) []string {
+func appendEnvVars(args []string, opts RunOpts) []string {
 	env := func(k, v string) {
 		args = append(args, "-e", k+"="+v)
 	}

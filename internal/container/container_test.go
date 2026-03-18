@@ -219,15 +219,13 @@ func TestAppendPorts(t *testing.T) {
 }
 
 func TestAppendEnvVars(t *testing.T) {
-	home := "/home/testuser"
-
 	t.Run("always includes required env vars", func(t *testing.T) {
 		opts := RunOpts{
 			Config:     config.Config{},
 			Agent:      stubAgent{envVars: map[string]string{}},
 			ProjectDir: "/work/myproject",
 		}
-		got := appendEnvVars([]string{}, home, opts)
+		got := appendEnvVars([]string{}, opts)
 		joined := strings.Join(got, " ")
 
 		for _, want := range []string{
@@ -248,7 +246,7 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{}},
 			ProjectDir: "/work/proj",
 		}
-		got := appendEnvVars([]string{}, home, opts)
+		got := appendEnvVars([]string{}, opts)
 		joined := strings.Join(got, " ")
 		if !strings.Contains(joined, "-e ASYLUM_JAVA_VERSION=17") {
 			t.Errorf("expected ASYLUM_JAVA_VERSION=17 in %v", got)
@@ -261,7 +259,7 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{}},
 			ProjectDir: "/work/proj",
 		}
-		got := appendEnvVars([]string{}, home, opts)
+		got := appendEnvVars([]string{}, opts)
 		for _, v := range got {
 			if strings.HasPrefix(v, "ASYLUM_JAVA_VERSION") {
 				t.Errorf("unexpected ASYLUM_JAVA_VERSION in %v", got)
@@ -275,7 +273,7 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{"MY_TOKEN": "secret"}},
 			ProjectDir: "/work/proj",
 		}
-		got := appendEnvVars([]string{}, home, opts)
+		got := appendEnvVars([]string{}, opts)
 		joined := strings.Join(got, " ")
 		if !strings.Contains(joined, "-e MY_TOKEN=secret") {
 			t.Errorf("expected MY_TOKEN=secret in %v", got)
