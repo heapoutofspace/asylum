@@ -26,10 +26,9 @@ fi
 # Ensure proper PATH
 export PATH="$HOME/.local/bin:$PATH"
 
-# Source NVM if available
-if [ -s "$HOME/.nvm/nvm.sh" ]; then
-    export NVM_DIR="$HOME/.nvm"
-    source "$NVM_DIR/nvm.sh"
+# Setup fnm if available
+if command -v fnm >/dev/null 2>&1; then
+    eval "$(fnm env)"
 fi
 
 # Source SDKMAN if available, and select Java version if configured

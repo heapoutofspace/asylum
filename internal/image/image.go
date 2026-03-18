@@ -147,9 +147,9 @@ func generateProjectDockerfile(packages map[string][]string) (string, error) {
 
 	if npm := packages["npm"]; len(npm) > 0 {
 		b.WriteString("\nUSER claude\n")
-		b.WriteString("RUN bash -c \"source $HOME/.nvm/nvm.sh && npm install -g \\\n    ")
+		b.WriteString("RUN bash -c 'eval \"$(fnm env)\" && npm install -g \\\n    ")
 		b.WriteString(strings.Join(npm, " \\\n    "))
-		b.WriteString("\"\n")
+		b.WriteString("'\n")
 	}
 
 	writeUserRuns := func(prefix string, items []string) {
