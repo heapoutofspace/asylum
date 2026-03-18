@@ -6,6 +6,7 @@
 - Set terminal tab title on container start (default `🤖 projectname`, configurable via `tab-title` with `{project}`, `{agent}`, `{mode}` placeholders)
 - Dev channel self-update shows commit count and recent commit messages
 - `self-update --safe` emergency updater that bypasses all checks
+- New Claude sessions are named after the project directory (sets tab title via `--name`)
 
 ## 0.3.2 — 2026-03-18
 

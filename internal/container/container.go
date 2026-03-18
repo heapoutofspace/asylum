@@ -252,7 +252,11 @@ func containerCommand(opts RunOpts) []string {
 		return opts.ExtraArgs
 	default:
 		resume := !opts.NewSession && opts.Agent.HasSession(opts.ProjectDir)
-		return opts.Agent.Command(resume, opts.ExtraArgs)
+		extra := opts.ExtraArgs
+		if opts.Agent.Name() == "claude" && !resume {
+			extra = append([]string{"--name", filepath.Base(opts.ProjectDir)}, extra...)
+		}
+		return opts.Agent.Command(resume, extra)
 	}
 }
 
