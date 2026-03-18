@@ -58,11 +58,12 @@ func main() {
 		return
 	}
 
+	projectDir, err := filepath.Abs(".")
+	if err != nil {
+		die("resolve project dir: %v", err)
+	}
+
 	if subcommand == "self-update" {
-		projectDir, err := filepath.Abs(".")
-		if err != nil {
-			die("resolve project dir: %v", err)
-		}
 		cfg, err := config.Load(projectDir, config.CLIFlags{})
 		if err != nil {
 			die("load config: %v", err)
@@ -79,11 +80,6 @@ func main() {
 	}
 
 	containerMode := resolveMode(subcommand, flags.Admin)
-
-	projectDir, err := filepath.Abs(".")
-	if err != nil {
-		die("resolve project dir: %v", err)
-	}
 
 	cfg, err := config.Load(projectDir, config.CLIFlags{
 		Agent:   flags.Agent,
@@ -112,15 +108,7 @@ func main() {
 	// For shell/run modes, exec into a running container instead of starting a new one
 	cname := container.ContainerName(projectDir)
 	if (containerMode == container.ModeShell || containerMode == container.ModeAdminShell || containerMode == container.ModeCommand) && docker.IsRunning(cname) {
-		args := container.ExecArgs(cname, containerMode, extraArgs)
-		dockerBin, err := exec.LookPath("docker")
-		if err != nil {
-			die("docker not found in PATH")
-		}
-		fullArgs := append([]string{"docker"}, args...)
-		if err := syscall.Exec(dockerBin, fullArgs, os.Environ()); err != nil {
-			die("exec docker: %v", err)
-		}
+		execDocker(container.ExecArgs(cname, containerMode, extraArgs))
 	}
 
 	baseRebuilt, err := image.EnsureBase(version, flags.Rebuild)
@@ -146,11 +134,6 @@ func main() {
 		die("%v", err)
 	}
 
-	dockerBin, err := exec.LookPath("docker")
-	if err != nil {
-		die("docker not found in PATH")
-	}
-
 	if containerMode == container.ModeAgent {
 		if c, ok := a.(interface{ WriteMarker(string) error }); ok {
 			if err := c.WriteMarker(projectDir); err != nil {
@@ -159,10 +142,7 @@ func main() {
 		}
 	}
 
-	fullArgs := append([]string{"docker"}, args...)
-	if err := syscall.Exec(dockerBin, fullArgs, os.Environ()); err != nil {
-		die("exec docker: %v", err)
-	}
+	execDocker(args)
 }
 
 type cliFlags struct {
@@ -286,6 +266,17 @@ func parseArgs(args []string) (cliFlags, string, []string, error) {
 	}
 
 	return flags, subcommand, extraArgs, nil
+}
+
+func execDocker(args []string) {
+	dockerBin, err := exec.LookPath("docker")
+	if err != nil {
+		die("docker not found in PATH")
+	}
+	fullArgs := append([]string{"docker"}, args...)
+	if err := syscall.Exec(dockerBin, fullArgs, os.Environ()); err != nil {
+		die("exec docker: %v", err)
+	}
 }
 
 func resolveMode(subcommand string, admin bool) container.Mode {
