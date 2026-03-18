@@ -135,8 +135,8 @@ func applyFlags(cfg Config, flags CLIFlags) Config {
 		}
 		cfg.Versions["java"] = flags.Java
 	}
-	cfg.Ports = append(cfg.Ports, flags.Ports...)
-	cfg.Volumes = append(cfg.Volumes, flags.Volumes...)
+	cfg.Ports = concatSlices(cfg.Ports, flags.Ports)
+	cfg.Volumes = concatSlices(cfg.Volumes, flags.Volumes)
 	return cfg
 }
 
