@@ -8,9 +8,7 @@
 - `self-update --safe` emergency updater that bypasses all checks
 - `features` config section for boolean feature flags
 - `session-name` feature flag: names new Claude sessions after the project directory (opt-in)
-
-### Fixed
-- Prevent Claude Code from overriding the terminal tab title (`CLAUDE_CODE_DISABLE_TERMINAL_TITLE`)
+- `allow-agent-terminal-title` feature flag: lets the agent control the terminal tab title (opt-in, default: asylum controls it)
 
 ## 0.3.2 — 2026-03-18
 

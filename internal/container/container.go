@@ -186,7 +186,9 @@ func appendEnvVars(args []string, opts RunOpts) []string {
 	}
 
 	env("ASYLUM_DOCKER", "1")
-	env("CLAUDE_CODE_DISABLE_TERMINAL_TITLE", "1")
+	if !opts.Config.Feature("allow-agent-terminal-title") {
+		env("CLAUDE_CODE_DISABLE_TERMINAL_TITLE", "1")
+	}
 	env("HISTFILE", "/home/claude/.shell_history/zsh_history")
 	env("HOST_PROJECT_DIR", opts.ProjectDir)
 

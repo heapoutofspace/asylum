@@ -93,6 +93,12 @@ env:
 versions:
   java: "17"
 
+tab-title: "🤖 {project}"    # Terminal tab title ({project}, {agent}, {mode})
+
+features:
+  session-name: true              # Name new Claude sessions after project dir
+  allow-agent-terminal-title: true  # Let the agent set the terminal tab title
+
 packages:
   apt:
     - libpq-dev
@@ -106,11 +112,32 @@ packages:
     - "curl -fsSL https://deno.land/install.sh | sh"
 ```
 
+### Tab title
+
+Asylum sets the terminal tab/window title before starting the container. The default is `🤖 projectname`. Customize it with `tab-title` using placeholders:
+
+| Placeholder | Value |
+|-------------|-------|
+| `{project}` | Project directory basename |
+| `{agent}` | Agent name (claude, gemini, codex) |
+| `{mode}` | Mode (agent, shell, admin, run) |
+
+By default, Claude Code is prevented from overriding this title. Set `allow-agent-terminal-title: true` in `features` to let it.
+
+### Feature flags
+
+Boolean flags in `features` control opt-in behaviors:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `session-name` | `false` | Name new Claude sessions after the project directory |
+| `allow-agent-terminal-title` | `false` | Let the agent set the terminal tab title (overrides asylum's `tab-title`) |
+
 ### Merge rules
 
-- **Scalars** (agent, java version): last value wins
+- **Scalars** (agent, java version, tab-title): last value wins
 - **Lists** (ports, volumes): concatenated across layers
-- **Maps** (env, versions): merged per key, last value wins
+- **Maps** (env, versions, features): merged per key, last value wins
 - **Package lists** (apt, npm, pip, run): each sub-list concatenated independently
 
 ## How It Works
@@ -177,6 +204,7 @@ Removes Asylum Docker images and optionally clears caches. Agent config (`~/.asy
 ```sh
 asylum self-update          # Update to latest stable release
 asylum self-update --dev    # Update to latest dev build from main
+asylum self-update --safe   # Emergency update (always dev, no checks)
 ```
 
 To always track dev builds, set `release-channel: dev` in your config:
