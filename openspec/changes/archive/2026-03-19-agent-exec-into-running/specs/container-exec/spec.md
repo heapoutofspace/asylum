@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Detect running container
 The docker package SHALL provide a function to check if a container with a given name is currently running.
@@ -39,6 +39,14 @@ When asylum detects it will exec into a running container, it SHALL skip the ima
 #### Scenario: No image build on exec
 - **WHEN** a container is running and any mode is used
 - **THEN** `EnsureBase` and `EnsureProject` are not called
+
+## REMOVED Requirements
+
+### Requirement: Agent mode does not exec
+**Reason**: Agent mode now execs into running containers, same as shell/run modes.
+**Migration**: No changes needed. Running `asylum` when a container is running now starts the agent inside the existing container instead of failing.
+
+## ADDED Requirements
 
 ### Requirement: Detached container lifecycle
 When no container is running, asylum SHALL start the container in detached mode with an idle process, then exec the session into it.

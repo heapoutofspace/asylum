@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -108,40 +109,56 @@ func main() {
 		die("%v", err)
 	}
 
-	// For shell/run modes, exec into a running container instead of starting a new one
 	cname := container.ContainerName(projectDir)
-	if (containerMode == container.ModeShell || containerMode == container.ModeAdminShell || containerMode == container.ModeCommand) && docker.IsRunning(cname) {
-		execArgs, err := container.ExecArgs(cname, containerMode, extraArgs)
+	newSession := flags.New
+
+	// If no container running, build images and start one detached
+	if !docker.IsRunning(cname) {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			die("home dir: %v", err)
+		}
+		seeded, err := container.EnsureAgentConfig(home, a)
 		if err != nil {
 			die("%v", err)
 		}
-		setTabTitle(cfg.TabTitle, projectDir, agentName, containerMode)
-		execDocker(execArgs)
+		if seeded {
+			newSession = true
+		}
+
+		baseRebuilt, err := image.EnsureBase(version, flags.Rebuild)
+		if err != nil {
+			die("%v", err)
+		}
+
+		imageTag, err := image.EnsureProject(cfg.Packages, cfg.Versions["java"], version, baseRebuilt, flags.Rebuild)
+		if err != nil {
+			die("%v", err)
+		}
+
+		runArgs, err := container.RunArgs(container.RunOpts{
+			Config:     cfg,
+			Agent:      a,
+			ImageTag:   imageTag,
+			ProjectDir: projectDir,
+		})
+		if err != nil {
+			die("%v", err)
+		}
+
+		if err := docker.RunDetached(runArgs); err != nil {
+			die("start container: %v", err)
+		}
+
+		// Wait for the entrypoint to finish (sleep becomes the main process)
+		if !docker.WaitReady(cname, 60) {
+			docker.ShowLogs(cname)
+			docker.RemoveContainer(cname)
+			die("container failed to start")
+		}
 	}
 
-	baseRebuilt, err := image.EnsureBase(version, flags.Rebuild)
-	if err != nil {
-		die("%v", err)
-	}
-
-	imageTag, err := image.EnsureProject(cfg.Packages, cfg.Versions["java"], version, baseRebuilt, flags.Rebuild)
-	if err != nil {
-		die("%v", err)
-	}
-
-	args, err := container.RunArgs(container.RunOpts{
-		Config:     cfg,
-		Agent:      a,
-		ImageTag:   imageTag,
-		ProjectDir: projectDir,
-		Mode:       containerMode,
-		NewSession: flags.New,
-		ExtraArgs:  extraArgs,
-	})
-	if err != nil {
-		die("%v", err)
-	}
-
+	// Write session marker for agent mode
 	if containerMode == container.ModeAgent {
 		if c, ok := a.(interface{ WriteMarker(string) error }); ok {
 			if err := c.WriteMarker(projectDir); err != nil {
@@ -150,8 +167,34 @@ func main() {
 		}
 	}
 
+	// Exec session into the running container
+	execArgs := container.ExecArgs(container.ExecOpts{
+		ContainerName: cname,
+		Mode:          containerMode,
+		Agent:         a,
+		ProjectDir:    projectDir,
+		ExtraArgs:     extraArgs,
+		NewSession:    newSession,
+		Config:        cfg,
+	})
+
+	if _, err := container.IncrementSessions(cname); err != nil {
+		log.Error("track session: %v", err)
+	}
+
 	setTabTitle(cfg.TabTitle, projectDir, agentName, containerMode)
-	execDocker(args)
+	exitCode := runDocker(execArgs)
+
+	// Cleanup: remove container if this was the last session
+	remaining, err := container.DecrementSessions(cname)
+	if err != nil {
+		log.Error("track session: %v", err)
+	}
+	if remaining <= 0 {
+		docker.RemoveContainer(cname)
+	}
+
+	os.Exit(exitCode)
 }
 
 type cliFlags struct {
@@ -341,15 +384,30 @@ func setTabTitle(template, projectDir, agent string, mode container.Mode) {
 	fmt.Printf("\033]0;%s\007", r.Replace(template))
 }
 
-func execDocker(args []string) {
-	dockerBin, err := exec.LookPath("docker")
-	if err != nil {
-		die("docker not found in PATH")
+func runDocker(args []string) int {
+	cmd := exec.Command("docker", args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Forward signals to the docker process
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for sig := range sigCh {
+			if cmd.Process != nil {
+				cmd.Process.Signal(sig)
+			}
+		}
+	}()
+
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return exitErr.ExitCode()
+		}
+		die("docker exec: %v", err)
 	}
-	fullArgs := append([]string{"docker"}, args...)
-	if err := syscall.Exec(dockerBin, fullArgs, os.Environ()); err != nil {
-		die("exec docker: %v", err)
-	}
+	return 0
 }
 
 func resolveMode(subcommand string, admin bool) container.Mode {

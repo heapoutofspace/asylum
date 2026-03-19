@@ -5,6 +5,12 @@
 ### Added
 - Shadow `node_modules` with named Docker volumes to isolate container from host-built native binaries (disable with `features: { shadow-node-modules: false }`)
 - `--cleanup` now also removes asylum-managed Docker volumes
+- Multiple concurrent sessions per project — all modes (agent, shell, run) exec into a running container
+- Container automatically cleaned up when the last session exits (file-based session counter)
+- Integration tests for detached container lifecycle and multi-session behavior
+
+### Changed
+- Container starts detached with idle process; all sessions use `docker exec` instead of `docker run`
 
 ### Fixed
 - fnm not found in interactive shell (missing from PATH in bashrc/zshrc)

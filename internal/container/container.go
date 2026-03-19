@@ -33,9 +33,6 @@ type RunOpts struct {
 	Agent      agent.Agent
 	ImageTag   string
 	ProjectDir string
-	Mode       Mode
-	NewSession bool
-	ExtraArgs  []string
 }
 
 func RunArgs(opts RunOpts) ([]string, error) {
@@ -47,16 +44,8 @@ func RunArgs(opts RunOpts) ([]string, error) {
 	containerName := ContainerName(opts.ProjectDir)
 	hostname := safeHostname(opts.ProjectDir)
 
-	seeded, err := ensureAgentConfig(home, opts.Agent)
-	if err != nil {
-		return nil, err
-	}
-	if seeded {
-		opts.NewSession = true
-	}
-
 	args := []string{
-		"run", "--rm", "-it", "--privileged", "--init",
+		"run", "-d", "--privileged", "--init",
 		"--name", containerName,
 		"--hostname", hostname,
 		"-w", opts.ProjectDir,
@@ -77,7 +66,7 @@ func RunArgs(opts RunOpts) ([]string, error) {
 	}
 
 	args = append(args, opts.ImageTag)
-	args = append(args, containerCommand(opts)...)
+	args = append(args, "sleep", "infinity")
 
 	return args, nil
 }
@@ -239,44 +228,47 @@ func appendPorts(args []string, ports []string) ([]string, error) {
 	return args, nil
 }
 
-func ExecArgs(containerName string, mode Mode, extraArgs []string) ([]string, error) {
-	if mode == ModeAgent {
-		return nil, fmt.Errorf("exec into running container is not supported for agent mode")
-	}
+type ExecOpts struct {
+	ContainerName string
+	Mode          Mode
+	Agent         agent.Agent
+	ProjectDir    string
+	ExtraArgs     []string
+	NewSession    bool
+	Config        config.Config
+}
+
+func ExecArgs(opts ExecOpts) []string {
 	args := []string{"exec", "-it"}
-	if mode == ModeAdminShell {
+	if opts.Mode == ModeAdminShell {
 		args = append(args, "-u", "root")
 	}
-	args = append(args, containerName)
-	switch mode {
-	case ModeShell, ModeAdminShell:
-		args = append(args, "/bin/zsh")
-	case ModeCommand:
-		args = append(args, extraArgs...)
-	}
-	return args, nil
-}
+	args = append(args, opts.ContainerName)
 
-func containerCommand(opts RunOpts) []string {
 	switch opts.Mode {
 	case ModeShell:
-		return []string{"/bin/zsh"}
+		args = append(args, "/bin/zsh")
 	case ModeAdminShell:
-		return []string{"bash", "-c", "echo 'Admin shell - sudo access enabled' && exec /bin/zsh"}
+		args = append(args, "/bin/zsh")
 	case ModeCommand:
-		return opts.ExtraArgs
-	default:
-		resume := !opts.NewSession && opts.Agent.HasSession(opts.ProjectDir)
-		extra := opts.ExtraArgs
-		if opts.Config.Feature("session-name") && opts.Agent.Name() == "claude" && !resume {
-			extra = append([]string{"--name", filepath.Base(opts.ProjectDir)}, extra...)
-		}
-		return opts.Agent.Command(resume, extra)
+		args = append(args, opts.ExtraArgs...)
+	case ModeAgent:
+		args = append(args, agentCommand(opts)...)
 	}
+	return args
 }
 
-// ensureAgentConfig returns true if the config was freshly created (first run).
-func ensureAgentConfig(home string, a agent.Agent) (bool, error) {
+func agentCommand(opts ExecOpts) []string {
+	resume := !opts.NewSession && opts.Agent.HasSession(opts.ProjectDir)
+	extra := opts.ExtraArgs
+	if opts.Config.Feature("session-name") && opts.Agent.Name() == "claude" && !resume {
+		extra = append([]string{"--name", filepath.Base(opts.ProjectDir)}, extra...)
+	}
+	return opts.Agent.Command(resume, extra)
+}
+
+// EnsureAgentConfig returns true if the config was freshly created (first run).
+func EnsureAgentConfig(home string, a agent.Agent) (bool, error) {
 	agentDir := config.ExpandTilde(a.AsylumConfigDir(), home)
 
 	if dirExists(agentDir) {
@@ -401,6 +393,57 @@ func findNodeModulesDirs(projectDir string) []string {
 	})
 	slices.Sort(results)
 	return results
+}
+
+// sessionCounterPath returns the path to the session counter file for a container.
+func sessionCounterPath(containerName string) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(home, ".asylum", "projects", containerName)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "sessions"), nil
+}
+
+// IncrementSessions atomically increments the session counter and returns the new value.
+func IncrementSessions(containerName string) (int, error) {
+	path, err := sessionCounterPath(containerName)
+	if err != nil {
+		return 0, err
+	}
+	return adjustCounter(path, 1)
+}
+
+// DecrementSessions atomically decrements the session counter and returns the new value.
+func DecrementSessions(containerName string) (int, error) {
+	path, err := sessionCounterPath(containerName)
+	if err != nil {
+		return 0, err
+	}
+	n, err := adjustCounter(path, -1)
+	if err != nil {
+		return 0, err
+	}
+	if n <= 0 {
+		os.Remove(path)
+	}
+	return n, nil
+}
+
+func adjustCounter(path string, delta int) (int, error) {
+	data, err := os.ReadFile(path)
+	n := 0
+	if err == nil {
+		n, _ = strconv.Atoi(strings.TrimSpace(string(data)))
+	}
+	n += delta
+	if n < 0 {
+		n = 0
+	}
+	return n, os.WriteFile(path, []byte(strconv.Itoa(n)), 0644)
 }
 
 func fileExists(path string) bool {

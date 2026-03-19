@@ -147,9 +147,11 @@ RUN /home/${USERNAME}/.local/bin/uv tool install black && \
     /home/${USERNAME}/.local/bin/uv tool install poetry && \
     /home/${USERNAME}/.local/bin/uv tool install pipenv
 
-# Install oh-my-zsh and setup fnm/mise for zsh
+# Install oh-my-zsh and setup PATH/fnm/mise for zsh
+# oh-my-zsh replaces .zshrc, so PATH must be re-added after install
 RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
     sed -i 's/ZSH_THEME=".*"/ZSH_THEME="robbyrussell"/' ~/.zshrc && \
+    echo 'export PATH="$HOME/.local/share/fnm:$HOME/.local/bin:$PATH"' >> ~/.zshrc && \
     echo 'eval "$(fnm env)"' >> ~/.zshrc && \
     echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
 

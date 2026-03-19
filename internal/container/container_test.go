@@ -357,84 +357,88 @@ func TestAppendEnvVars(t *testing.T) {
 	})
 }
 
-func TestContainerCommand(t *testing.T) {
+func TestExecArgsAllModes(t *testing.T) {
 	projectDir := t.TempDir()
 
 	tests := []struct {
 		name string
-		opts RunOpts
+		opts ExecOpts
 		want []string
 	}{
 		{
 			name: "shell mode",
-			opts: RunOpts{Mode: ModeShell},
-			want: []string{"/bin/zsh"},
+			opts: ExecOpts{ContainerName: "test", Mode: ModeShell},
+			want: []string{"exec", "-it", "test", "/bin/zsh"},
 		},
 		{
 			name: "admin shell mode",
-			opts: RunOpts{Mode: ModeAdminShell},
-			want: []string{"bash", "-c", "echo 'Admin shell - sudo access enabled' && exec /bin/zsh"},
+			opts: ExecOpts{ContainerName: "test", Mode: ModeAdminShell},
+			want: []string{"exec", "-it", "-u", "root", "test", "/bin/zsh"},
 		},
 		{
 			name: "command mode passes extra args through",
-			opts: RunOpts{Mode: ModeCommand, ExtraArgs: []string{"ls", "-la"}},
-			want: []string{"ls", "-la"},
+			opts: ExecOpts{ContainerName: "test", Mode: ModeCommand, ExtraArgs: []string{"ls", "-la"}},
+			want: []string{"exec", "-it", "test", "ls", "-la"},
 		},
 		{
 			name: "agent mode with new session (no resume)",
-			opts: RunOpts{
-				Mode:       ModeAgent,
-				NewSession: true,
-				Agent:      stubAgent{hasSession: true},
-				ProjectDir: projectDir,
+			opts: ExecOpts{
+				ContainerName: "test",
+				Mode:          ModeAgent,
+				NewSession:    true,
+				Agent:         stubAgent{hasSession: true},
+				ProjectDir:    projectDir,
 			},
-			want: []string{"stub"},
+			want: []string{"exec", "-it", "test", "stub"},
 		},
 		{
 			name: "agent mode resumes when session exists",
-			opts: RunOpts{
-				Mode:       ModeAgent,
-				NewSession: false,
-				Agent:      stubAgent{hasSession: true},
-				ProjectDir: projectDir,
+			opts: ExecOpts{
+				ContainerName: "test",
+				Mode:          ModeAgent,
+				NewSession:    false,
+				Agent:         stubAgent{hasSession: true},
+				ProjectDir:    projectDir,
 			},
-			want: []string{"stub-resume"},
+			want: []string{"exec", "-it", "test", "stub-resume"},
 		},
 		{
 			name: "agent mode no resume when session absent",
-			opts: RunOpts{
-				Mode:       ModeAgent,
-				NewSession: false,
-				Agent:      stubAgent{hasSession: false},
-				ProjectDir: projectDir,
+			opts: ExecOpts{
+				ContainerName: "test",
+				Mode:          ModeAgent,
+				NewSession:    false,
+				Agent:         stubAgent{hasSession: false},
+				ProjectDir:    projectDir,
 			},
-			want: []string{"stub"},
+			want: []string{"exec", "-it", "test", "stub"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := containerCommand(tt.opts)
+			got := ExecArgs(tt.opts)
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("containerCommand() = %v, want %v", got, tt.want)
+				t.Errorf("ExecArgs() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestContainerCommandAgentExtraArgs(t *testing.T) {
+func TestExecArgsAgentExtraArgs(t *testing.T) {
 	dir := t.TempDir()
-	opts := RunOpts{
-		Mode:       ModeAgent,
-		NewSession: false,
-		Agent:      stubAgent{hasSession: false},
-		ProjectDir: dir,
-		ExtraArgs:  []string{"fix", "the", "bug"},
+	opts := ExecOpts{
+		ContainerName: "test",
+		Mode:          ModeAgent,
+		NewSession:    false,
+		Agent:         stubAgent{hasSession: false},
+		ProjectDir:    dir,
+		ExtraArgs:     []string{"fix", "the", "bug"},
 	}
-	got := containerCommand(opts)
-	want := []string{"stub", "fix", "the", "bug"}
+	got := ExecArgs(opts)
+	want := []string{"exec", "-it", "test", "stub", "fix", "the", "bug"}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("containerCommand() = %v, want %v", got, want)
+		t.Errorf("ExecArgs() = %v, want %v", got, want)
 	}
 }
 
@@ -525,44 +529,6 @@ func TestAppendVolumesUserVolumes(t *testing.T) {
 			}
 			if !found {
 				t.Errorf("expected -v %q in args %v", wantMount, args)
-			}
-		})
-	}
-}
-
-func TestExecArgs(t *testing.T) {
-	tests := []struct {
-		name      string
-		mode      Mode
-		extraArgs []string
-		want      []string
-	}{
-		{
-			name: "shell",
-			mode: ModeShell,
-			want: []string{"exec", "-it", "asylum-test", "/bin/zsh"},
-		},
-		{
-			name: "admin shell execs as root",
-			mode: ModeAdminShell,
-			want: []string{"exec", "-it", "-u", "root", "asylum-test", "/bin/zsh"},
-		},
-		{
-			name:      "run command",
-			mode:      ModeCommand,
-			extraArgs: []string{"echo", "hello"},
-			want:      []string{"exec", "-it", "asylum-test", "echo", "hello"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := ExecArgs("asylum-test", tt.mode, tt.extraArgs)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ExecArgs() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -799,10 +765,4 @@ func TestAppendVolumesNodeModulesDisabled(t *testing.T) {
 	}
 }
 
-func TestExecArgsRejectsAgent(t *testing.T) {
-	_, err := ExecArgs("asylum-test", ModeAgent, nil)
-	if err == nil {
-		t.Error("expected error for ModeAgent, got nil")
-	}
-}
 

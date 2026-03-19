@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"time"
 )
 
 func DockerAvailable() error {
@@ -61,6 +62,37 @@ func PruneImages(filterLabel string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func RunDetached(args []string) error {
+	cmd := exec.Command("docker", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func RemoveContainer(name string) error {
+	cmd := exec.Command("docker", "rm", "-f", name)
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func ShowLogs(name string) {
+	cmd := exec.Command("docker", "logs", name)
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+}
+
+// WaitReady polls until the container is running, up to timeoutSec seconds.
+func WaitReady(name string, timeoutSec int) bool {
+	for i := 0; i < timeoutSec; i++ {
+		if IsRunning(name) {
+			return true
+		}
+		time.Sleep(time.Second)
+	}
+	return false
 }
 
 func IsRunning(name string) bool {
