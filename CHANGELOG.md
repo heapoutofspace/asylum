@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0 — 2026-03-19
+
 ### Added
 - Shadow `node_modules` with named Docker volumes to isolate container from host-built native binaries (disable with `features: { shadow-node-modules: false }`)
 - `--cleanup` now also removes asylum-managed Docker volumes
