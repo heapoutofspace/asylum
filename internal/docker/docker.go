@@ -69,6 +69,32 @@ func IsRunning(name string) bool {
 	return err == nil && strings.TrimSpace(string(out)) == "true"
 }
 
+func ListVolumes(prefix string) ([]string, error) {
+	cmd := exec.Command("docker", "volume", "ls", "--format", "{{.Name}}")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	var volumes []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if line != "" && strings.HasPrefix(line, prefix) {
+			volumes = append(volumes, line)
+		}
+	}
+	return volumes, nil
+}
+
+func RemoveVolumes(volumes ...string) error {
+	if len(volumes) == 0 {
+		return nil
+	}
+	args := append([]string{"volume", "rm"}, volumes...)
+	cmd := exec.Command("docker", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func ListImages(filter string) ([]string, error) {
 	cmd := exec.Command("docker", "images", "--format", "{{.Repository}}:{{.Tag}}", "--filter", "reference="+filter)
 	out, err := cmd.Output()

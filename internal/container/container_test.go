@@ -1,6 +1,8 @@
 package container
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -639,6 +641,7 @@ func TestResolveGitWorktree(t *testing.T) {
 func TestFindNodeModules(t *testing.T) {
 	t.Run("finds top-level node_modules", func(t *testing.T) {
 		project := t.TempDir()
+		os.WriteFile(filepath.Join(project, "package.json"), []byte("{}"), 0644)
 		nm := filepath.Join(project, "node_modules")
 		os.MkdirAll(nm, 0755)
 
@@ -650,6 +653,7 @@ func TestFindNodeModules(t *testing.T) {
 
 	t.Run("finds monorepo node_modules", func(t *testing.T) {
 		project := t.TempDir()
+		os.WriteFile(filepath.Join(project, "package.json"), []byte("{}"), 0644)
 		root := filepath.Join(project, "node_modules")
 		pkg := filepath.Join(project, "packages", "app", "node_modules")
 		os.MkdirAll(root, 0755)
@@ -664,6 +668,7 @@ func TestFindNodeModules(t *testing.T) {
 
 	t.Run("skips nested node_modules inside node_modules", func(t *testing.T) {
 		project := t.TempDir()
+		os.WriteFile(filepath.Join(project, "package.json"), []byte("{}"), 0644)
 		nm := filepath.Join(project, "node_modules")
 		nested := filepath.Join(nm, "some-pkg", "node_modules")
 		os.MkdirAll(nested, 0755)
@@ -674,8 +679,30 @@ func TestFindNodeModules(t *testing.T) {
 		}
 	})
 
+	t.Run("no package.json returns empty", func(t *testing.T) {
+		project := t.TempDir()
+		os.MkdirAll(filepath.Join(project, "node_modules"), 0755)
+		got := findNodeModules(project)
+		if len(got) != 0 {
+			t.Errorf("got %v, want empty", got)
+		}
+	})
+
 	t.Run("no node_modules returns empty", func(t *testing.T) {
 		project := t.TempDir()
+		os.WriteFile(filepath.Join(project, "package.json"), []byte("{}"), 0644)
+		got := findNodeModules(project)
+		if len(got) != 0 {
+			t.Errorf("got %v, want empty", got)
+		}
+	})
+
+	t.Run("skips heavy directories", func(t *testing.T) {
+		project := t.TempDir()
+		os.WriteFile(filepath.Join(project, "package.json"), []byte("{}"), 0644)
+		// node_modules inside .venv should not be found
+		os.MkdirAll(filepath.Join(project, ".venv", "lib", "node_modules"), 0755)
+
 		got := findNodeModules(project)
 		if len(got) != 0 {
 			t.Errorf("got %v, want empty", got)
@@ -690,6 +717,7 @@ func TestAppendVolumesNodeModulesShadowed(t *testing.T) {
 
 	agentConfigDir := filepath.Join(home, ".asylum", "agents", "stub")
 	os.MkdirAll(agentConfigDir, 0755)
+	os.WriteFile(filepath.Join(projectDir, "package.json"), []byte("{}"), 0644)
 
 	nm := filepath.Join(projectDir, "node_modules")
 	os.MkdirAll(nm, 0755)
@@ -705,7 +733,9 @@ func TestAppendVolumesNodeModulesShadowed(t *testing.T) {
 		t.Fatalf("appendVolumes: %v", err)
 	}
 
-	wantMount := "type=volume,dst=" + nm
+	// "node_modules" hashes to a fixed value
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte("node_modules")))[:11]
+	wantMount := "type=volume,src=" + cname + "-npm-" + hash + ",dst=" + nm
 	found := false
 	for i, arg := range args {
 		if arg == "--mount" && i+1 < len(args) && args[i+1] == wantMount {
@@ -715,6 +745,34 @@ func TestAppendVolumesNodeModulesShadowed(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("expected --mount %q in args %v", wantMount, args)
+	}
+}
+
+func TestAppendVolumesNodeModulesDisabled(t *testing.T) {
+	home := t.TempDir()
+	projectDir := t.TempDir()
+	cname := ContainerName(projectDir)
+
+	agentConfigDir := filepath.Join(home, ".asylum", "agents", "stub")
+	os.MkdirAll(agentConfigDir, 0755)
+	os.WriteFile(filepath.Join(projectDir, "package.json"), []byte("{}"), 0644)
+	os.MkdirAll(filepath.Join(projectDir, "node_modules"), 0755)
+
+	opts := RunOpts{
+		Config:     config.Config{Features: map[string]bool{"shadow-node-modules": false}},
+		Agent:      stubAgent{},
+		ProjectDir: projectDir,
+	}
+
+	args, err := appendVolumes([]string{}, home, cname, opts)
+	if err != nil {
+		t.Fatalf("appendVolumes: %v", err)
+	}
+
+	for _, arg := range args {
+		if strings.Contains(arg, "node_modules") && strings.Contains(arg, "type=volume") {
+			t.Errorf("node_modules shadow should be disabled, found %q", arg)
+		}
 	}
 }
 

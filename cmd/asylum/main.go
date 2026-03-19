@@ -367,7 +367,7 @@ func resolveMode(subcommand string, admin bool) container.Mode {
 }
 
 func runCleanup() {
-	log.Info("removing asylum images...")
+	log.Info("removing asylum images and volumes...")
 
 	var errs int
 	if err := docker.RemoveImages("asylum:latest"); err != nil {
@@ -385,13 +385,23 @@ func runCleanup() {
 		}
 	}
 
+	if vols, err := docker.ListVolumes("asylum-"); err != nil {
+		log.Error("list volumes: %v", err)
+		errs++
+	} else if len(vols) > 0 {
+		if err := docker.RemoveVolumes(vols...); err != nil {
+			log.Error("remove volumes: %v", err)
+			errs++
+		}
+	}
+
 	switch {
 	case errs == 0:
-		log.Success("images removed")
-	case errs < 2:
-		log.Warn("some images removed (see errors above)")
+		log.Success("images and volumes removed")
+	case errs < 3:
+		log.Warn("partially cleaned up (see errors above)")
 	default:
-		log.Warn("no images removed (see errors above)")
+		log.Warn("cleanup failed (see errors above)")
 	}
 
 	fmt.Print("Remove cached data (~/.asylum/cache/ and ~/.asylum/projects/)? (y/N) ")

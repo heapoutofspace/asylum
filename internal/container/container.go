@@ -112,10 +112,16 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	// Project directory at real path
 	vol(opts.ProjectDir, opts.ProjectDir, "z")
 
-	// Shadow node_modules with anonymous volumes so host OS-specific
-	// binaries aren't visible inside the container.
-	for _, nm := range findNodeModules(opts.ProjectDir) {
-		args = append(args, "--mount", "type=volume,dst="+nm)
+	// Shadow node_modules with named volumes so host OS-specific
+	// binaries aren't visible inside the container. Named volumes
+	// persist across container restarts so npm install isn't lost.
+	if !opts.Config.FeatureOff("shadow-node-modules") {
+		for _, nm := range findNodeModules(opts.ProjectDir) {
+			rel, _ := filepath.Rel(opts.ProjectDir, nm)
+			hash := fmt.Sprintf("%x", sha256.Sum256([]byte(rel)))[:11]
+			volName := cname + "-npm-" + hash
+			args = append(args, "--mount", "type=volume,src="+volName+",dst="+nm)
+		}
 	}
 
 	// Git worktree: mount both the worktree gitdir and main repo's .git
@@ -362,18 +368,33 @@ func resolveGitWorktree(projectDir string) (worktreeDir, commonDir string) {
 
 
 // findNodeModules returns absolute paths to node_modules directories
-// within projectDir. It skips nested node_modules inside node_modules.
+// within projectDir. It skips nested node_modules inside node_modules
+// and other heavy directories that can't contain relevant node_modules.
 func findNodeModules(projectDir string) []string {
+	if !fileExists(filepath.Join(projectDir, "package.json")) {
+		return nil
+	}
+
+	// Directories that never contain relevant node_modules
+	skip := map[string]bool{
+		".git": true, ".venv": true, "__pycache__": true,
+		"vendor": true, "target": true, "build": true, "dist": true,
+	}
+
 	var results []string
 	filepath.WalkDir(projectDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
-		if d.IsDir() && d.Name() == "node_modules" {
+		if !d.IsDir() {
+			return nil
+		}
+		name := d.Name()
+		if name == "node_modules" {
 			results = append(results, path)
 			return filepath.SkipDir
 		}
-		if d.IsDir() && d.Name() == ".git" {
+		if path != projectDir && skip[name] {
 			return filepath.SkipDir
 		}
 		return nil

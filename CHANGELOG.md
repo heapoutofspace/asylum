@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- Shadow `node_modules` with anonymous volumes in container to prevent host dependencies from leaking in
+- Shadow `node_modules` with named Docker volumes to isolate container from host-built native binaries (disable with `features: { shadow-node-modules: false }`)
 
 ### Fixed
 - fnm not found in interactive shell (missing from PATH in bashrc/zshrc)
