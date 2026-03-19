@@ -27,6 +27,13 @@ func (c Config) Feature(name string) bool {
 	return c.Features[name]
 }
 
+// FeatureOff returns true if a feature has been explicitly disabled.
+// Use for features that are on by default.
+func (c Config) FeatureOff(name string) bool {
+	v, ok := c.Features[name]
+	return ok && !v
+}
+
 type CLIFlags struct {
 	Agent   string
 	Ports   []string
