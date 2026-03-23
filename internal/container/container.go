@@ -187,6 +187,8 @@ func appendEnvVars(args []string, opts RunOpts) []string {
 	}
 
 	env("ASYLUM_DOCKER", "1")
+	env("COLORTERM", "truecolor")
+	env("TERM", "xterm-256color")
 	if !opts.Config.Feature("allow-agent-terminal-title") {
 		env("CLAUDE_CODE_DISABLE_TERMINAL_TITLE", "1")
 	}
