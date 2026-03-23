@@ -9,6 +9,9 @@
 - Onboarding state tracking in `~/.asylum/projects/` — skips completed tasks unless lockfile changes
 - `onboarding` config section for per-task control; `features: { onboarding: false }` for global disable
 
+### Changed
+- Cache directories (npm, pip, maven, gradle) now use named Docker volumes instead of bind mounts for better IO on macOS
+
 ## 0.4.0 — 2026-03-19
 
 ### Added

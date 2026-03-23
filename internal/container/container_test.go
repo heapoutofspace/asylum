@@ -701,6 +701,47 @@ func TestFindNodeModulesDirs(t *testing.T) {
 	})
 }
 
+func TestAppendVolumesCacheNamedVolumes(t *testing.T) {
+	home := t.TempDir()
+	projectDir := t.TempDir()
+	cname := ContainerName(projectDir)
+
+	agentConfigDir := filepath.Join(home, ".asylum", "agents", "stub")
+	os.MkdirAll(agentConfigDir, 0755)
+
+	opts := RunOpts{
+		Config:     config.Config{},
+		Agent:      stubAgent{},
+		ProjectDir: projectDir,
+	}
+
+	args, err := appendVolumes([]string{}, home, cname, opts)
+	if err != nil {
+		t.Fatalf("appendVolumes: %v", err)
+	}
+
+	for _, tool := range []string{"gradle", "maven", "npm", "pip"} {
+		wantPrefix := "type=volume,src=" + cname + "-cache-" + tool + ",dst="
+		found := false
+		for i, arg := range args {
+			if arg == "--mount" && i+1 < len(args) && strings.HasPrefix(args[i+1], wantPrefix) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected named volume mount for cache %q, not found in %v", tool, args)
+		}
+	}
+
+	// No bind mount to ~/.asylum/cache/ should exist
+	for i, arg := range args {
+		if arg == "-v" && i+1 < len(args) && strings.Contains(args[i+1], ".asylum/cache") {
+			t.Errorf("unexpected bind mount for cache: %q", args[i+1])
+		}
+	}
+}
+
 func TestAppendVolumesNodeModulesShadowed(t *testing.T) {
 	home := t.TempDir()
 	projectDir := t.TempDir()

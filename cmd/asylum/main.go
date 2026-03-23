@@ -166,6 +166,18 @@ func main() {
 				docker.Exec(cname, "root", "chown", "claude", nm)
 			}
 		}
+
+		// Migrate old bind-mounted caches to named volumes (temporary)
+		oldCacheBase := filepath.Join(home, ".asylum", "cache", cname)
+		for tool, dst := range container.CacheDirs {
+			oldDir := filepath.Join(oldCacheBase, tool)
+			if info, err := os.Stat(oldDir); err == nil && info.IsDir() {
+				if err := docker.CopyTo(cname, oldDir, dst); err != nil {
+					log.Error("migrate %s cache: %v", tool, err)
+				}
+			}
+		}
+		os.RemoveAll(oldCacheBase)
 	}
 
 	// Write session marker for agent mode

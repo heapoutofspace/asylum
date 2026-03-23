@@ -19,6 +19,14 @@ import (
 
 var invalidHostnameChars = regexp.MustCompile(`[^a-z0-9-]`)
 
+// CacheDirs maps tool names to their container cache paths.
+var CacheDirs = map[string]string{
+	"npm":    "/home/claude/.npm",
+	"pip":    "/home/claude/.cache/pip",
+	"maven":  "/home/claude/.m2",
+	"gradle": "/home/claude/.gradle",
+}
+
 type Mode int
 
 const (
@@ -133,20 +141,10 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 		vol(sshDir, "/home/claude/.ssh", "rw")
 	}
 
-	// Caches
-	cacheBase := filepath.Join(home, ".asylum", "cache", cname)
-	caches := map[string]string{
-		"npm":    "/home/claude/.npm",
-		"pip":    "/home/claude/.cache/pip",
-		"maven":  "/home/claude/.m2",
-		"gradle": "/home/claude/.gradle",
-	}
-	for _, name := range slices.Sorted(maps.Keys(caches)) {
-		hostPath := filepath.Join(cacheBase, name)
-		if err := os.MkdirAll(hostPath, 0755); err != nil {
-			return nil, fmt.Errorf("create cache dir %s: %w", hostPath, err)
-		}
-		vol(hostPath, caches[name], "rw")
+	// Caches (named volumes for better IO on macOS)
+	for _, name := range slices.Sorted(maps.Keys(CacheDirs)) {
+		volName := cname + "-cache-" + name
+		args = append(args, "--mount", "type=volume,src="+volName+",dst="+CacheDirs[name])
 	}
 
 	// Shell history

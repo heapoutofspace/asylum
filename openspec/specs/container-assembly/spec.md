@@ -8,7 +8,7 @@ Container name SHALL be `asylum-<sha256(project_dir)[:12]>` and hostname SHALL b
 - **THEN** the container name is `asylum-` followed by the first 12 chars of the SHA256 of that path, and hostname is `asylum-myapp`
 
 ### Requirement: Common volume mounts
-The container SHALL include all common mounts from PLAN.md section 5.3: project dir at real path, gitconfig, ssh, caches, history, custom volumes, and direnv.
+The container SHALL include all common mounts: project dir at real path, gitconfig, ssh, caches (as named Docker volumes), history, custom volumes, and direnv.
 
 #### Scenario: All common mounts present
 - **WHEN** gitconfig exists, ssh dir exists, and project has .envrc
@@ -17,6 +17,14 @@ The container SHALL include all common mounts from PLAN.md section 5.3: project 
 #### Scenario: Missing optional paths
 - **WHEN** gitconfig and ssh dir do not exist
 - **THEN** those mounts are omitted, all others remain
+
+#### Scenario: Cache directories use named volumes
+- **WHEN** the container is started
+- **THEN** cache directories (npm, pip, maven, gradle) are mounted as named Docker volumes using `--mount type=volume,src=<container-name>-cache-<tool>,dst=<path>`
+
+#### Scenario: No host cache directory created
+- **WHEN** the container is started
+- **THEN** no `~/.asylum/cache/` directory is created on the host
 
 ### Requirement: Agent-specific mounts and env vars
 The container SHALL mount the agent's asylum config dir and set agent-specific env vars.

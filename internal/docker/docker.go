@@ -85,6 +85,11 @@ func ReadFile(container, path string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
+// CopyTo copies the contents of a host directory into a container path.
+func CopyTo(container, hostDir, containerPath string) error {
+	return exec.Command("docker", "cp", hostDir+"/.", container+":"+containerPath).Run()
+}
+
 func RemoveContainer(name string) error {
 	cmd := exec.Command("docker", "rm", "-f", name)
 	cmd.Stderr = os.Stderr

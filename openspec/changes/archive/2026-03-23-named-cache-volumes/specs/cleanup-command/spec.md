@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Cleanup command
 The --cleanup flag SHALL remove asylum images, named volumes (shadow and cache), and optionally remove cached data from the host filesystem, while preserving agent config.
