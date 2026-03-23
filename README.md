@@ -54,9 +54,10 @@ asylum self-update [--dev]    Update to latest version
 | `-p <port>` | Forward a port (repeatable, e.g. `-p 3000 -p 8080:80`) |
 | `-v <volume>` | Mount a volume (repeatable, e.g. `-v ~/data:/data:ro`) |
 | `-e KEY=VALUE` | Set environment variable (repeatable, last wins) |
-| `--java <version>` | Select Java version (`17`, `21`, `25` pre-installed; others installed on demand) |
+| `--java <version>` | Select Java version (`17`, `21`, `25` pre-installed; others installed on demand). Auto-detected from `.tool-versions`. |
 | `-n`, `--new` | Start a fresh session (skip auto-resume) |
 | `--rebuild` | Force rebuild the Docker image |
+| `--skip-onboarding` | Skip project onboarding tasks for this run |
 | `--cleanup` | Remove Asylum images and cached data |
 | `--version` | Show version |
 
@@ -99,6 +100,9 @@ features:
   session-name: true              # Name new Claude sessions after project dir
   allow-agent-terminal-title: true  # Let the agent set the terminal tab title
 
+onboarding:
+  npm: true                       # Auto-install Node.js deps on first container start
+
 packages:
   apt:
     - libpq-dev
@@ -124,14 +128,29 @@ Asylum sets the terminal tab/window title before starting the container. The def
 
 By default, Claude Code is prevented from overriding this title. Set `allow-agent-terminal-title: true` in `features` to let it.
 
+### Project onboarding
+
+Asylum can automatically run setup tasks (like `npm install`) when a container is first created. Onboarding is opt-in per task:
+
+```yaml
+onboarding:
+  npm: true    # Auto-install Node.js dependencies (detects lockfiles)
+```
+
+When enabled, asylum scans for lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`), shows a prompt listing what it found, and runs the appropriate install command inside the container. State is tracked — it won't re-prompt unless a lockfile changes.
+
+Skip onboarding for a single run with `--skip-onboarding`, or disable it globally with `features: { onboarding: false }`.
+
 ### Feature flags
 
-Boolean flags in `features` control opt-in behaviors:
+Boolean flags in `features` control opt-in/opt-out behaviors:
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `session-name` | `false` | Name new Claude sessions after the project directory |
 | `allow-agent-terminal-title` | `false` | Let the agent set the terminal tab title (overrides asylum's `tab-title`) |
+| `shadow-node-modules` | `true` | Shadow `node_modules` with named volumes to isolate host native binaries |
+| `onboarding` | `true` | Enable the onboarding system (individual tasks still need opt-in via `onboarding` map) |
 
 ### Merge rules
 
@@ -172,14 +191,22 @@ Your project is mounted at its **real host path** inside the container (not `/wo
 | Git config | `~/.gitconfig` | Global (read-only) |
 | SSH keys | `~/.asylum/ssh/` | Global |
 | Agent config | `~/.asylum/agents/<agent>/` | Global (per agent) |
-| Package caches (npm, pip, maven, gradle) | `~/.asylum/cache/<id>/` | Per project |
+| Package caches (npm, pip, maven, gradle) | Named Docker volumes | Per project |
 | Shell history | `~/.asylum/projects/<id>/history` | Per project |
 | Direnv approvals | `~/.local/share/direnv/allow` | Global (read-only) |
 | `.env` file | `$PWD/.env` | Per project (env vars only) |
 
 On first run, agent config is **seeded** (one-time copy) from the host native config directory (e.g. `~/.claude` → `~/.asylum/agents/claude/`). After that, the asylum copy is independent — changes to the host config won't propagate.
 
+### Shadow node_modules
+
+On macOS, Node.js native binaries built on the host won't work inside the Linux container. Asylum automatically shadows `node_modules` directories with named Docker volumes so each platform has its own binaries. This is transparent — your source files are shared, only `node_modules` is isolated.
+
+Disable with `features: { shadow-node-modules: false }`.
+
 ### Sessions
+
+Multiple terminal sessions can share a single container. The first `asylum` invocation starts the container; subsequent ones exec into it. The container is automatically removed when the last session exits.
 
 Agents auto-resume previous sessions by default. Use `-n` to start fresh. Session detection is per-project (keyed by absolute path).
 

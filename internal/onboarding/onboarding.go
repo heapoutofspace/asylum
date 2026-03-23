@@ -110,7 +110,7 @@ func Run(opts Opts) {
 
 	var pending []pendingWorkload
 	for _, task := range opts.Tasks {
-		if disabled, ok := opts.Onboarding[task.Name()]; ok && !disabled {
+		if !opts.Onboarding[task.Name()] {
 			continue
 		}
 		taskState := state[task.Name()]
