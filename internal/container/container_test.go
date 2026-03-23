@@ -267,6 +267,8 @@ func TestAppendEnvVars(t *testing.T) {
 
 		for _, want := range []string{
 			"-e ASYLUM_DOCKER=1",
+			"-e COLORTERM=truecolor",
+			"-e TERM=xterm-256color",
 			"-e HISTFILE=/home/claude/.shell_history/zsh_history",
 			"-e HOST_PROJECT_DIR=/work/myproject",
 		} {
