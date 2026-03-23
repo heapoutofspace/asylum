@@ -12,6 +12,9 @@
 ### Changed
 - Cache directories (npm, pip, maven, gradle) now use named Docker volumes instead of bind mounts for better IO on macOS
 
+### Fixed
+- `.tool-versions` with `java 25` no longer triggers "missing" warning (switched from temurin-prefixed to plain version numbers)
+
 ## 0.4.0 — 2026-03-19
 
 ### Added

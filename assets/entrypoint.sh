@@ -37,12 +37,7 @@ fi
 if command -v mise >/dev/null 2>&1; then
     eval "$(mise activate bash)"
     if [ -n "${ASYLUM_JAVA_VERSION:-}" ]; then
-        # Pre-installed versions use the temurin- prefix; others were installed
-        # by the project Dockerfile and use the version string as-is
-        case "${ASYLUM_JAVA_VERSION}" in
-            17|21|25) mise use --global java@temurin-"${ASYLUM_JAVA_VERSION}" >/dev/null 2>&1 ;;
-            *)        mise use --global java@"${ASYLUM_JAVA_VERSION}" >/dev/null 2>&1 ;;
-        esac
+        mise use --global java@"${ASYLUM_JAVA_VERSION}" >/dev/null 2>&1
         eval "$(mise env)"
     fi
 fi

@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Java versions managed by mise
 The Dockerfile SHALL install mise and use it to install Java 17, 21, and 25 using plain version numbers, with 21 as the default.
@@ -15,20 +15,6 @@ The Dockerfile SHALL install mise and use it to install Java 17, 21, and 25 usin
 - **WHEN** the project has `.tool-versions` with `java 25`
 - **THEN** mise resolves it to the pre-installed version without warnings
 
-### Requirement: Gradle managed by mise
-The Dockerfile SHALL install Gradle via mise.
-
-#### Scenario: Gradle available
-- **WHEN** the container starts
-- **THEN** `gradle --version` succeeds
-
-### Requirement: mise activation in entrypoint
-The entrypoint SHALL activate mise to make managed tools available in PATH.
-
-#### Scenario: mise activation
-- **WHEN** the entrypoint runs
-- **THEN** `mise` is on PATH and Java/Gradle are available without manual PATH setup
-
 ### Requirement: Java version selection via ASYLUM_JAVA_VERSION
 The entrypoint SHALL select a Java version when `ASYLUM_JAVA_VERSION` is set, using `mise use --global java@<version>` with plain version numbers.
 
@@ -39,16 +25,3 @@ The entrypoint SHALL select a Java version when `ASYLUM_JAVA_VERSION` is set, us
 #### Scenario: Select non-pre-installed version
 - **WHEN** `ASYLUM_JAVA_VERSION` is set to a version not pre-installed (e.g., `11`)
 - **THEN** the project image Dockerfile installs it via `mise install java@11` and sets it as the global default
-
-### Requirement: Non-pre-installed Java in project Dockerfile
-When `versions.java` specifies a version not in the base image (17, 21, 25), the image package SHALL add a mise install command to the generated project Dockerfile.
-
-#### Scenario: Custom Java version in project config
-- **WHEN** `versions.java` is set to `11`
-- **THEN** the project Dockerfile includes `mise install java@11` and `mise use --global java@11`
-- **AND** the project image tag reflects this in its hash
-
-#### Scenario: Pre-installed Java version in project config
-- **WHEN** `versions.java` is set to `17`
-- **THEN** no additional install is added to the project Dockerfile
-- **AND** the entrypoint handles version selection at runtime

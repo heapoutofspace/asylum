@@ -40,6 +40,7 @@ assets/
 - Base image rebuild invalidates all project images (the `baseRebuilt` flag cascades to `EnsureProject`).
 - Container names are deterministic: `asylum-<sha256(project_dir)[:12]>`.
 - Project directory is mounted at its real host path (not `/workspace`), preserving absolute paths.
+- **The entrypoint script (`entrypoint.sh`) must never install anything.** It configures the environment (PATH, mise, fnm, git, direnv) but all tool/package installation belongs in the Dockerfile (base or project image). Installing in the entrypoint adds latency to every container start and is not cached.
 
 ## Code Style
 

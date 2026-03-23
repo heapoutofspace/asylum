@@ -133,8 +133,8 @@ RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && 
 
 # Install mise for Java/Gradle version management
 RUN curl https://mise.run | sh && \
-    ~/.local/bin/mise install java@temurin-17 java@temurin-21 java@temurin-25 && \
-    ~/.local/bin/mise use --global java@temurin-21 && \
+    ~/.local/bin/mise install java@17 java@21 java@25 && \
+    ~/.local/bin/mise use --global java@21 && \
     ~/.local/bin/mise install gradle@latest && \
     ~/.local/bin/mise use --global gradle@latest
 
