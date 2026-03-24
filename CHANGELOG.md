@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- First-run onboarding: prompts to mount package manager credentials (Maven) on initial setup
 - Project onboarding framework: scans for setup tasks, prompts once, executes via `docker exec` with proper error handling
 - Node.js dependency auto-install as first onboarding task (disable with `onboarding: { npm: false }`)
 - `--skip-onboarding` CLI flag to skip all onboarding tasks for a single invocation
@@ -13,6 +14,7 @@
 - Cache directories (npm, pip, maven, gradle) now use named Docker volumes instead of bind mounts for better IO on macOS
 
 ### Fixed
+- Tilde (`~`) in volume shorthand (e.g. `~/.m2/settings.xml:ro`) now correctly expands to `/home/claude` inside the container instead of the host home directory
 - `.tool-versions` with `java 25` no longer triggers "missing" warning (switched from temurin-prefixed to plain version numbers)
 
 ## 0.4.0 — 2026-03-19

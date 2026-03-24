@@ -502,6 +502,13 @@ func TestAppendVolumesUserVolumes(t *testing.T) {
 			wantHost: filepath.Join(home, "data"),
 			wantCont: "/data",
 		},
+		{
+			name:        "tilde shorthand expands container to /home/claude",
+			volumes:     []string{"~/.m2/settings.xml:ro"},
+			wantHost:    filepath.Join(home, ".m2/settings.xml"),
+			wantCont:    "/home/claude/.m2/settings.xml",
+			wantOptions: "ro",
+		},
 	}
 
 	for _, tt := range tests {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/inventage-ai/asylum/internal/agent"
 	"github.com/inventage-ai/asylum/internal/config"
+	"github.com/inventage-ai/asylum/internal/firstrun"
 	"github.com/inventage-ai/asylum/internal/container"
 	"github.com/inventage-ai/asylum/internal/docker"
 	"github.com/inventage-ai/asylum/internal/image"
@@ -85,6 +86,15 @@ func main() {
 
 	containerMode := resolveMode(subcommand, flags.Admin)
 
+	home, err := os.UserHomeDir()
+	if err != nil {
+		die("home dir: %v", err)
+	}
+
+	if err := firstrun.Run(home); err != nil {
+		die("first-run setup: %v", err)
+	}
+
 	cfg, err := config.Load(projectDir, config.CLIFlags{
 		Agent:   flags.Agent,
 		Ports:   flags.Ports,
@@ -116,10 +126,6 @@ func main() {
 
 	// If no container running, build images and start one detached
 	if !docker.IsRunning(cname) {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			die("home dir: %v", err)
-		}
 		seeded, err := container.EnsureAgentConfig(home, a)
 		if err != nil {
 			die("%v", err)

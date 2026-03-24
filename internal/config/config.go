@@ -214,24 +214,26 @@ func ExpandTilde(path, homeDir string) string {
 	return path
 }
 
-func ParseVolume(raw string, homeDir string) Volume {
+func ParseVolume(raw string, hostHome, containerHome string) Volume {
 	parts := strings.Split(raw, ":")
 
 	switch len(parts) {
 	case 1:
 		// "/data" → same path both sides
-		host := ExpandTilde(parts[0], homeDir)
-		return Volume{Host: host, Container: host}
+		host := ExpandTilde(parts[0], hostHome)
+		ctr := ExpandTilde(parts[0], containerHome)
+		return Volume{Host: host, Container: ctr}
 	case 2:
 		if mountOptions[parts[1]] {
 			// "/data:ro" → shorthand with option
-			host := ExpandTilde(parts[0], homeDir)
-			return Volume{Host: host, Container: host, Options: parts[1]}
+			host := ExpandTilde(parts[0], hostHome)
+			ctr := ExpandTilde(parts[0], containerHome)
+			return Volume{Host: host, Container: ctr, Options: parts[1]}
 		}
 		// "/host:/container"
-		return Volume{Host: ExpandTilde(parts[0], homeDir), Container: parts[1]}
+		return Volume{Host: ExpandTilde(parts[0], hostHome), Container: ExpandTilde(parts[1], containerHome)}
 	default:
 		// "/host:/container:opts" or more
-		return Volume{Host: ExpandTilde(parts[0], homeDir), Container: parts[1], Options: strings.Join(parts[2:], ":")}
+		return Volume{Host: ExpandTilde(parts[0], hostHome), Container: ExpandTilde(parts[1], containerHome), Options: strings.Join(parts[2:], ":")}
 	}
 }

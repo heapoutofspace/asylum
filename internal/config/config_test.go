@@ -230,7 +230,8 @@ func TestApplyFlagsEnv(t *testing.T) {
 }
 
 func TestParseVolume(t *testing.T) {
-	home := "/home/user"
+	hostHome := "/Users/simon"
+	containerHome := "/home/claude"
 
 	tests := []struct {
 		name string
@@ -260,33 +261,33 @@ func TestParseVolume(t *testing.T) {
 		{
 			name: "tilde expansion standard",
 			raw:  "~/data:/data:ro",
-			want: Volume{Host: "/home/user/data", Container: "/data", Options: "ro"},
+			want: Volume{Host: "/Users/simon/data", Container: "/data", Options: "ro"},
 		},
 		{
 			name: "tilde shorthand",
 			raw:  "~/data",
-			want: Volume{Host: "/home/user/data", Container: "/home/user/data"},
+			want: Volume{Host: "/Users/simon/data", Container: "/home/claude/data"},
 		},
 		{
 			name: "tilde shorthand with option",
 			raw:  "~/data:rw",
-			want: Volume{Host: "/home/user/data", Container: "/home/user/data", Options: "rw"},
+			want: Volume{Host: "/Users/simon/data", Container: "/home/claude/data", Options: "rw"},
 		},
 		{
-			name: "tilde in container path preserved",
+			name: "tilde in container path expanded",
 			raw:  "~/host:~/container",
-			want: Volume{Host: "/home/user/host", Container: "~/container"},
+			want: Volume{Host: "/Users/simon/host", Container: "/home/claude/container"},
 		},
 		{
 			name: "tilde in container path with options",
 			raw:  "~/host:~/container:ro",
-			want: Volume{Host: "/home/user/host", Container: "~/container", Options: "ro"},
+			want: Volume{Host: "/Users/simon/host", Container: "/home/claude/container", Options: "ro"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ParseVolume(tt.raw, home)
+			got := ParseVolume(tt.raw, hostHome, containerHome)
 			if got != tt.want {
 				t.Errorf("ParseVolume(%q) = %+v, want %+v", tt.raw, got, tt.want)
 			}

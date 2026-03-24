@@ -168,7 +168,7 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	}
 
 	for _, v := range opts.Config.Volumes {
-		parsed := config.ParseVolume(v, home)
+		parsed := config.ParseVolume(v, home, "/home/claude")
 		vol(parsed.Host, parsed.Container, parsed.Options)
 	}
 
