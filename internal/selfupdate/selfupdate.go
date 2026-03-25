@@ -44,20 +44,27 @@ func ResolveChannel(devFlag bool, configChannel string) string {
 	return "stable"
 }
 
+// resolveUpdate resolves the binary path and fetches the download URL for the given channel.
+func resolveUpdate(execPath, channel string) (binPath, downloadURL string, rel release, err error) {
+	binPath, err = filepath.EvalSymlinks(execPath)
+	if err != nil {
+		return "", "", release{}, fmt.Errorf("resolve binary path: %w", err)
+	}
+	rel, err = fetchRelease(channel)
+	if err != nil {
+		return "", "", release{}, err
+	}
+	downloadURL, err = findAssetURL(rel)
+	if err != nil {
+		return "", "", release{}, err
+	}
+	return binPath, downloadURL, rel, nil
+}
+
 // SafeRun is a stripped-down emergency updater. Always pulls the dev release,
 // no version checks, no changelog — just download and replace.
 func SafeRun(execPath string) error {
-	binPath, err := filepath.EvalSymlinks(execPath)
-	if err != nil {
-		return fmt.Errorf("resolve binary path: %w", err)
-	}
-
-	rel, err := fetchRelease("dev")
-	if err != nil {
-		return err
-	}
-
-	downloadURL, err := findAssetURL(rel)
+	binPath, downloadURL, _, err := resolveUpdate(execPath, "dev")
 	if err != nil {
 		return err
 	}
@@ -75,12 +82,7 @@ func SafeRun(execPath string) error {
 // symlinks from execPath, fetches the appropriate release, and atomically
 // replaces the binary.
 func Run(currentVersion, currentCommit, channel, execPath string) error {
-	binPath, err := filepath.EvalSymlinks(execPath)
-	if err != nil {
-		return fmt.Errorf("resolve binary path: %w", err)
-	}
-
-	rel, err := fetchRelease(channel)
+	binPath, downloadURL, rel, err := resolveUpdate(execPath, channel)
 	if err != nil {
 		return err
 	}
@@ -89,11 +91,6 @@ func Run(currentVersion, currentCommit, channel, execPath string) error {
 	if channel == "stable" && currentVersion == strings.TrimPrefix(version, "v") {
 		log.Success("already up to date (%s)", version)
 		return nil
-	}
-
-	downloadURL, err := findAssetURL(rel)
-	if err != nil {
-		return err
 	}
 
 	log.Info("downloading %s...", version)
