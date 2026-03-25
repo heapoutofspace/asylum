@@ -204,6 +204,13 @@ func appendEnvVars(args []string, opts RunOpts) ([]string, error) {
 		env(k, opts.Config.Env[k])
 	}
 
+	// Agent env vars before hardcoded vars so hardcoded values win
+	// (Docker uses last-wins semantics for -e flags).
+	agentEnv := opts.Agent.EnvVars()
+	for _, k := range slices.Sorted(maps.Keys(agentEnv)) {
+		env(k, agentEnv[k])
+	}
+
 	if opts.Config.KitActive("docker") {
 		env("ASYLUM_DOCKER", "1")
 	}
@@ -217,11 +224,6 @@ func appendEnvVars(args []string, opts RunOpts) ([]string, error) {
 
 	if java := opts.Config.JavaVersion(); java != "" {
 		env("ASYLUM_JAVA_VERSION", java)
-	}
-
-	agentEnv := opts.Agent.EnvVars()
-	for _, k := range slices.Sorted(maps.Keys(agentEnv)) {
-		env(k, agentEnv[k])
 	}
 
 	return args, nil
