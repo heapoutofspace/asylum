@@ -500,7 +500,11 @@ func runDocker(args []string) int {
 		}
 	}()
 
-	if err := cmd.Run(); err != nil {
+	err := cmd.Run()
+	signal.Stop(sigCh)
+	close(sigCh)
+
+	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			return exitErr.ExitCode()
 		}
