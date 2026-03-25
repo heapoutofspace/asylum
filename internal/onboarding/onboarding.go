@@ -178,7 +178,11 @@ func execInContainer(opts Opts, w Workload) error {
 	args = append(args, "-w", w.Dir, opts.ContainerName)
 	if opts.ContainerPath != "" {
 		// Run through bash so PATH is applied before command lookup
-		script := "export PATH=" + shellQuote(opts.ContainerPath) + "; " + strings.Join(w.Command, " ")
+		quoted := make([]string, len(w.Command))
+		for i, arg := range w.Command {
+			quoted[i] = shellQuote(arg)
+		}
+		script := "export PATH=" + shellQuote(opts.ContainerPath) + "; " + strings.Join(quoted, " ")
 		args = append(args, "bash", "-c", script)
 	} else {
 		args = append(args, w.Command...)
