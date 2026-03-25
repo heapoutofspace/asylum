@@ -178,6 +178,9 @@ func TestParseVolume(t *testing.T) {
 		{"shorthand with mount option", "/data:ro", Volume{Host: "/data", Container: "/data", Options: "ro"}},
 		{"tilde expansion standard", "~/data:/data:ro", Volume{Host: "/home/user/data", Container: "/data", Options: "ro"}},
 		{"tilde shorthand", "~/data", Volume{Host: "/home/user/data", Container: "/home/user/data"}},
+		{"three parts with single option", "/host:/container:ro", Volume{Host: "/host", Container: "/container", Options: "ro"}},
+		{"four parts with two options", "/host:/container:ro:z", Volume{Host: "/host", Container: "/container", Options: "ro:z"}},
+		{"three parts with selinux label", "/host:/container:z", Volume{Host: "/host", Container: "/container", Options: "z"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -192,12 +195,24 @@ func TestParseVolume(t *testing.T) {
 	}
 
 	// Error cases
-	t.Run("empty string", func(t *testing.T) {
-		_, err := ParseVolume("", home)
-		if err == nil {
-			t.Error("ParseVolume(\"\") expected error, got nil")
-		}
-	})
+	errTests := []struct {
+		name string
+		raw  string
+	}{
+		{"empty string", ""},
+		{"invalid option in third part", "/host:/container:bogus"},
+		{"invalid option in fourth part", "/host:/container:ro:bogus"},
+		{"empty host in multi-part", ":/container:ro"},
+		{"empty container in multi-part", "/host::ro"},
+	}
+	for _, tt := range errTests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ParseVolume(tt.raw, home)
+			if err == nil {
+				t.Errorf("ParseVolume(%q) expected error, got nil", tt.raw)
+			}
+		})
+	}
 }
 
 func TestLoad(t *testing.T) {
