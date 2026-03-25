@@ -254,20 +254,25 @@ func main() {
 		Config:        cfg,
 	})
 
+	incremented := false
 	if _, err := container.IncrementSessions(cname); err != nil {
 		log.Error("track session: %v", err)
+	} else {
+		incremented = true
 	}
 
 	setTabTitle(cfg.TabTitle(), projectDir, agentName, containerMode)
 	exitCode := runDocker(execArgs)
 
 	// Cleanup: remove container if this was the last session
-	remaining, err := container.DecrementSessions(cname)
-	if err != nil {
-		log.Error("track session: %v", err)
-	}
-	if remaining <= 0 {
-		docker.RemoveContainer(cname)
+	if incremented {
+		remaining, err := container.DecrementSessions(cname)
+		if err != nil {
+			log.Error("track session: %v", err)
+		}
+		if remaining <= 0 {
+			docker.RemoveContainer(cname)
+		}
 	}
 
 	os.Exit(exitCode)
