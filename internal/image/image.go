@@ -17,14 +17,19 @@ import (
 
 const baseTag = "asylum:latest"
 
-// assembleDockerfile builds a complete Dockerfile from core + profile snippets + agent snippets + tail.
-func assembleDockerfile(profiles []*kit.Kit, agentInstalls []*agent.AgentInstall) []byte {
-	var b strings.Builder
-	b.Write(assets.DockerfileCore)
-	if !strings.HasSuffix(string(assets.DockerfileCore), "\n") {
+// writeCore writes a core asset to the builder, ensuring it ends with a blank line separator.
+func writeCore(b *strings.Builder, core []byte) {
+	b.Write(core)
+	if !strings.HasSuffix(string(core), "\n") {
 		b.WriteByte('\n')
 	}
 	b.WriteByte('\n')
+}
+
+// assembleDockerfile builds a complete Dockerfile from core + profile snippets + agent snippets + tail.
+func assembleDockerfile(profiles []*kit.Kit, agentInstalls []*agent.AgentInstall) []byte {
+	var b strings.Builder
+	writeCore(&b, assets.DockerfileCore)
 	if snippets := kit.AssembleDockerSnippets(profiles); snippets != "" {
 		b.WriteString(snippets)
 	}
@@ -39,11 +44,7 @@ func assembleDockerfile(profiles []*kit.Kit, agentInstalls []*agent.AgentInstall
 // Banner lines from profiles and agents are inserted at the PROFILE_BANNER_PLACEHOLDER marker.
 func assembleEntrypoint(profiles []*kit.Kit, agentInstalls []*agent.AgentInstall) []byte {
 	var b strings.Builder
-	b.Write(assets.EntrypointCore)
-	if !strings.HasSuffix(string(assets.EntrypointCore), "\n") {
-		b.WriteByte('\n')
-	}
-	b.WriteByte('\n')
+	writeCore(&b, assets.EntrypointCore)
 	if snippets := kit.AssembleEntrypointSnippets(profiles); snippets != "" {
 		b.WriteString(snippets)
 		b.WriteByte('\n')
