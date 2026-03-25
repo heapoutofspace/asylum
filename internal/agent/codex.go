@@ -14,7 +14,7 @@ func init() {
 		DockerSnippet: `# Install Codex
 RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && npm install -g @openai/codex'
 `,
-		ProfileDeps: []string{"node"},
+		KitDeps: []string{"node"},
 		BannerLine: `    echo "Codex:     $(codex --version 2>/dev/null || echo 'not found')"
 `,
 	})

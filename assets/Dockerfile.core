@@ -44,14 +44,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Docker (full engine for Docker-in-Docker support)
+# Install Docker CLI (engine is optional via docker kit)
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | \
     gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     chmod 644 /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
     > /etc/apt/sources.list.d/docker.list && \
     apt-get update && \
-    apt-get install -y docker-ce docker-buildx-plugin docker-compose-plugin && \
+    apt-get install -y docker-ce-cli && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -85,8 +85,7 @@ ARG USERNAME=claude
 RUN groupadd -g ${GROUP_ID} ${USERNAME} || true && \
     useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/zsh ${USERNAME} && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
-    chmod 0440 /etc/sudoers.d/${USERNAME} && \
-    usermod -aG docker ${USERNAME}
+    chmod 0440 /etc/sudoers.d/${USERNAME}
 
 # Switch to user for tool installations
 USER ${USERNAME}

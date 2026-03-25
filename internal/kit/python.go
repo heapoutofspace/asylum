@@ -1,7 +1,7 @@
-package profile
+package kit
 
 func init() {
-	Register(&Profile{
+	Register(&Kit{
 		Name:        "python",
 		Description: "Python tools via uv",
 		DockerSnippet: `# Setup Python tools
@@ -15,7 +15,7 @@ RUN $HOME/.local/bin/uv tool install black && \
 `,
 		BannerLines: `    echo "Python:    $(python3 --version 2>&1 | cut -d' ' -f2) (uv available)"
 `,
-		SubProfiles: map[string]*Profile{
+		SubKits: map[string]*Kit{
 			"uv": {
 				Name:        "python/uv",
 				Description: "Python venv auto-creation and pip caching",

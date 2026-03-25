@@ -1,0 +1,74 @@
+version: 0.2
+
+# Release channel for self-update (stable, dev)
+release-channel: stable
+
+# Agent to start by default (claude, gemini, codex, opencode)
+agent: claude
+# Agent CLIs to install
+agents:
+  claude:
+  gemini:
+  # codex:
+  # opencode:
+
+kits:
+  java:
+    versions:
+      - 17
+      - 21
+      - 25
+    default-version: 21
+
+  python:
+    versions:
+      - 3.9
+      - 3.14
+    # no default-version set -> defaults to latest version listed above
+    packages:  # packages are installed for the default version only
+      - ansible
+
+  node:
+    shadow-node-modules: true
+    onboarding: false
+    versions:
+      - 24
+      - 25
+    packages:
+      - turbo
+      - nx
+
+  apt:
+    packages:
+      - imagemagick
+      - ffmpeg
+
+  title:
+    # Terminal tab title template
+    # Placeholders: {project}, {agent}, {mode}
+    tab-title: "🤖 {project}"
+
+    allow-agent-terminal-title: false
+
+  shell:
+    build:
+      - "curl -fsSL https://example.com/install.sh | sh"
+    start:  # entrypoint
+      - 'echo "WELCOME TO THE ASYLUM!"'
+
+# Port forwarding (host:container or just port for same on both sides)
+ports:
+  - "3000"
+  - "8080:80"
+
+# Additional volume mounts
+# Supports: /path, /host:/container, /host:/container:ro, ~/path
+volumes:
+  - ~/shared-data:/data
+  - ~/.aws
+
+# Environment variables
+env:
+  GITHUB_TOKEN: ghp_xxx
+  NODE_ENV: development
+  JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8"

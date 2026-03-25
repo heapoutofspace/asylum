@@ -17,7 +17,7 @@ import (
 	"github.com/inventage-ai/asylum/internal/image"
 	"github.com/inventage-ai/asylum/internal/log"
 	"github.com/inventage-ai/asylum/internal/onboarding"
-	"github.com/inventage-ai/asylum/internal/profile"
+	"github.com/inventage-ai/asylum/internal/kit"
 	"github.com/inventage-ai/asylum/internal/selfupdate"
 	"github.com/inventage-ai/asylum/internal/ssh"
 )
@@ -85,6 +85,17 @@ func main() {
 		return
 	}
 
+	// Write default config on first run
+	if home, err := os.UserHomeDir(); err == nil {
+		cfgPath := filepath.Join(home, ".asylum", "config.yaml")
+		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+			os.MkdirAll(filepath.Dir(cfgPath), 0755)
+			if err := config.WriteDefaults(cfgPath); err != nil {
+				log.Error("write default config: %v", err)
+			}
+		}
+	}
+
 	containerMode := resolveMode(subcommand, flags.Admin)
 
 	home, err := os.UserHomeDir()
@@ -98,7 +109,7 @@ func main() {
 
 	cfg, err := config.Load(projectDir, config.CLIFlags{
 		Agent:    flags.Agent,
-		Profiles: flags.Profiles,
+		Kits: flags.Kits,
 		Agents:   flags.Agents,
 		Ports:    flags.Ports,
 		Volumes:  flags.Volumes,
@@ -109,34 +120,27 @@ func main() {
 		die("load config: %v", err)
 	}
 
-	// Resolve all active profiles from final merged config
-	allProfiles, err := profile.Resolve(cfg.Profiles)
+	// Resolve all active kits from config
+	allKits, err := kit.Resolve(cfg.KitNames())
 	if err != nil {
 		die("%v", err)
 	}
 
-	// Apply profile config defaults UNDER user config (user wins).
-	var profileDefaults config.Config
-	for _, p := range allProfiles {
-		profileDefaults = config.Merge(profileDefaults, p.Config)
-	}
-	cfg = config.Merge(profileDefaults, cfg)
-
-	// Resolve global-tier profiles (from ~/.asylum/config.yaml only) for base image.
-	// Project-only profiles (in final set but not global) go into the project image.
-	globalProfiles, projectProfiles := resolveProfileTiers(projectDir, allProfiles)
+	// Resolve global-tier kits (from ~/.asylum/config.yaml only) for base image.
+	globalKits, projectKits := resolveKitTiers(projectDir, allKits)
 
 	// Resolve agent installs (nil defaults to claude-only)
-	profileNames := make([]string, len(allProfiles))
-	for i, p := range allProfiles {
-		profileNames[i] = p.Name
+	agentMap := agentConfigToMap(cfg.Agents)
+	kitNames := make([]string, len(allKits))
+	for i, k := range allKits {
+		kitNames[i] = k.Name
 	}
-	agentInstalls, err := agent.ResolveInstalls(cfg.Agents, profileNames)
+	agentInstalls, err := agent.ResolveInstalls(agentMap, kitNames)
 	if err != nil {
 		die("%v", err)
 	}
 
-	cacheDirs := profile.AggregateCacheDirs(allProfiles)
+	cacheDirs := kit.AggregateCacheDirs(allKits)
 
 	agentName := cfg.Agent
 	if agentName == "" {
@@ -166,12 +170,12 @@ func main() {
 			newSession = true
 		}
 
-		baseRebuilt, err := image.EnsureBase(globalProfiles, agentInstalls, version, flags.Rebuild)
+		baseRebuilt, err := image.EnsureBase(globalKits, agentInstalls, version, flags.Rebuild)
 		if err != nil {
 			die("%v", err)
 		}
 
-		imageTag, err := image.EnsureProject(projectProfiles, cfg.Packages, cfg.Versions["java"], version, baseRebuilt, flags.Rebuild)
+		imageTag, err := image.EnsureProject(projectKits, collectPackages(cfg), cfg.JavaVersion(), version, baseRebuilt, flags.Rebuild)
 		if err != nil {
 			die("%v", err)
 		}
@@ -200,7 +204,7 @@ func main() {
 		freshContainer = true
 
 		// Fix ownership of shadow node_modules volumes (Docker creates them as root)
-		if !cfg.FeatureOff("shadow-node-modules") {
+		if !cfg.ShadowNodeModulesOff() {
 			for _, nm := range container.FindNodeModulesDirs(projectDir) {
 				docker.Exec(cname, "root", "chown", "claude", nm)
 			}
@@ -229,14 +233,14 @@ func main() {
 	}
 
 	// Run onboarding tasks (agent mode, first container start only)
-	if containerMode == container.ModeAgent && freshContainer && !flags.SkipOnboarding && !cfg.FeatureOff("onboarding") {
+	if containerMode == container.ModeAgent && freshContainer && !flags.SkipOnboarding {
 		containerPath, _ := docker.ReadFile(cname, "/tmp/asylum-path")
 		onboarding.Run(onboarding.Opts{
 			ProjectDir:    projectDir,
 			ContainerName: cname,
 			ContainerPath: containerPath,
-			Tasks:         profile.AggregateOnboardingTasks(allProfiles),
-			Onboarding:    cfg.Onboarding,
+			Tasks:         kit.AggregateOnboardingTasks(allKits),
+			Onboarding:    collectOnboarding(cfg),
 		})
 	}
 
@@ -255,7 +259,7 @@ func main() {
 		log.Error("track session: %v", err)
 	}
 
-	setTabTitle(cfg.TabTitle, projectDir, agentName, containerMode)
+	setTabTitle(cfg.TabTitle(), projectDir, agentName, containerMode)
 	exitCode := runDocker(execArgs)
 
 	// Cleanup: remove container if this was the last session
@@ -272,7 +276,7 @@ func main() {
 
 type cliFlags struct {
 	Agent    string
-	Profiles *[]string
+	Kits *[]string
 	Agents   *[]string
 	Ports    []string
 	Volumes  []string
@@ -348,11 +352,11 @@ func parseArgs(args []string) (cliFlags, string, []string, error) {
 			}
 		case arg == "--java":
 			flags.Java, err = next(arg)
-		case arg == "--profiles":
+		case arg == "--kits":
 			var val string
 			if val, err = next(arg); err == nil {
 				p := strings.Split(val, ",")
-				flags.Profiles = &p
+				flags.Kits = &p
 			}
 		case arg == "--agents":
 			var val string
@@ -575,38 +579,78 @@ func runCleanup() {
 	log.Info("agent config (~/.asylum/agents/) preserved — delete manually if needed")
 }
 
-// resolveProfileTiers splits allProfiles into global (for base image) and
-// project-only (for project image). Global profiles come from ~/.asylum/config.yaml;
-// project-only profiles are those in allProfiles but not in the global set.
-func resolveProfileTiers(projectDir string, allProfiles []*profile.Profile) (global, projectOnly []*profile.Profile) {
+// resolveKitTiers splits allKits into global (for base image) and
+// project-only (for project image). Global kits come from ~/.asylum/config.yaml;
+// project-only kits are those in allKits but not in the global set.
+func resolveKitTiers(projectDir string, allKits []*kit.Kit) (global, projectOnly []*kit.Kit) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return allProfiles, nil
+		return allKits, nil
 	}
 
 	globalCfg, err := config.LoadFile(filepath.Join(home, ".asylum", "config.yaml"))
 	if err != nil {
-		return allProfiles, nil
+		return allKits, nil
 	}
 
-	globalResolved, err := profile.Resolve(globalCfg.Profiles)
+	globalResolved, err := kit.Resolve(globalCfg.KitNames())
 	if err != nil {
-		return allProfiles, nil
+		return allKits, nil
 	}
 
 	globalSet := map[string]bool{}
-	for _, p := range globalResolved {
-		globalSet[p.Name] = true
+	for _, k := range globalResolved {
+		globalSet[k.Name] = true
 	}
 
-	for _, p := range allProfiles {
-		if globalSet[p.Name] {
-			global = append(global, p)
+	for _, k := range allKits {
+		if globalSet[k.Name] {
+			global = append(global, k)
 		} else {
-			projectOnly = append(projectOnly, p)
+			projectOnly = append(projectOnly, k)
 		}
 	}
 	return global, projectOnly
+}
+
+// agentConfigToMap converts the agents config map to a simple name→bool map for ResolveInstalls.
+func agentConfigToMap(agents map[string]*config.AgentConfig) map[string]bool {
+	if agents == nil {
+		return nil
+	}
+	m := make(map[string]bool, len(agents))
+	for name := range agents {
+		m[name] = true
+	}
+	return m
+}
+
+// collectPackages aggregates packages from kit configs into the old map format for EnsureProject.
+func collectPackages(cfg config.Config) map[string][]string {
+	pkgs := map[string][]string{}
+	if p := cfg.KitPackages("apt"); len(p) > 0 {
+		pkgs["apt"] = p
+	}
+	if p := cfg.KitPackages("node"); len(p) > 0 {
+		pkgs["npm"] = p
+	}
+	if p := cfg.KitPackages("python"); len(p) > 0 {
+		pkgs["pip"] = p
+	}
+	if kc := cfg.KitOption("shell"); kc != nil && len(kc.Build) > 0 {
+		pkgs["run"] = kc.Build
+	}
+	return pkgs
+}
+
+// collectOnboarding builds the onboarding enabled map from kit configs.
+func collectOnboarding(cfg config.Config) map[string]bool {
+	m := map[string]bool{}
+	// Map kit onboarding settings to task names
+	if cfg.OnboardingEnabled("node") {
+		m["npm"] = true
+	}
+	return m
 }
 
 func printUsage() {
@@ -628,7 +672,7 @@ Flags:
   -v <volume>          Additional volume mount (repeatable)
   -e KEY=VALUE         Environment variable (repeatable, last wins)
   --java <version>     Java version in container
-  --profiles <list>    Comma-separated profiles (default: all)
+  --kits <list>    Comma-separated kits (default: all)
   --agents <list>      Comma-separated agents (default: claude)
   -n, --new            Start new session (skip resume)
   --rebuild            Force rebuild Docker image

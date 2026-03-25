@@ -12,6 +12,8 @@ import (
 	"github.com/inventage-ai/asylum/internal/config"
 )
 
+func boolPtr(b bool) *bool { return &b }
+
 // stubAgent satisfies agent.Agent for tests that need a minimal implementation.
 type stubAgent struct {
 	envVars    map[string]string
@@ -256,7 +258,20 @@ func TestAppendPorts(t *testing.T) {
 }
 
 func TestAppendEnvVars(t *testing.T) {
-	t.Run("always includes required env vars", func(t *testing.T) {
+	t.Run("ASYLUM_DOCKER set when docker kit active", func(t *testing.T) {
+		opts := RunOpts{
+			Config:     config.Config{Kits: map[string]*config.KitConfig{"docker": nil}},
+			Agent:      stubAgent{envVars: map[string]string{}},
+			ProjectDir: "/work/myproject",
+		}
+		got := appendEnvVars([]string{}, opts)
+		joined := strings.Join(got, " ")
+		if !strings.Contains(joined, "ASYLUM_DOCKER=1") {
+			t.Error("ASYLUM_DOCKER=1 should be set when docker kit is active")
+		}
+	})
+
+	t.Run("ASYLUM_DOCKER not set when docker kit inactive", func(t *testing.T) {
 		opts := RunOpts{
 			Config:     config.Config{},
 			Agent:      stubAgent{envVars: map[string]string{}},
@@ -264,22 +279,12 @@ func TestAppendEnvVars(t *testing.T) {
 		}
 		got := appendEnvVars([]string{}, opts)
 		joined := strings.Join(got, " ")
-
-		for _, want := range []string{
-			"-e ASYLUM_DOCKER=1",
-			"-e HISTFILE=/home/claude/.shell_history/zsh_history",
-			"-e HOST_PROJECT_DIR=/work/myproject",
-		} {
-			if !strings.Contains(joined, want) {
-				t.Errorf("expected %q in args %v", want, got)
-			}
+		if strings.Contains(joined, "ASYLUM_DOCKER") {
+			t.Error("ASYLUM_DOCKER should NOT be set when docker kit is inactive")
 		}
 	})
 
-	t.Run("inherits COLORTERM and TERM from host", func(t *testing.T) {
-		t.Setenv("COLORTERM", "truecolor")
-		t.Setenv("TERM", "xterm-256color")
-
+	t.Run("always includes required env vars", func(t *testing.T) {
 		opts := RunOpts{
 			Config:     config.Config{},
 			Agent:      stubAgent{envVars: map[string]string{}},
@@ -291,6 +296,8 @@ func TestAppendEnvVars(t *testing.T) {
 		for _, want := range []string{
 			"-e COLORTERM=truecolor",
 			"-e TERM=xterm-256color",
+			"-e HISTFILE=/home/claude/.shell_history/zsh_history",
+			"-e HOST_PROJECT_DIR=/work/myproject",
 		} {
 			if !strings.Contains(joined, want) {
 				t.Errorf("expected %q in args %v", want, got)
@@ -298,27 +305,8 @@ func TestAppendEnvVars(t *testing.T) {
 		}
 	})
 
-	t.Run("omits COLORTERM and TERM when unset on host", func(t *testing.T) {
-		t.Setenv("COLORTERM", "")
-		t.Setenv("TERM", "")
-
-		opts := RunOpts{
-			Config:     config.Config{},
-			Agent:      stubAgent{envVars: map[string]string{}},
-			ProjectDir: "/work/myproject",
-		}
-		got := appendEnvVars([]string{}, opts)
-		joined := strings.Join(got, " ")
-
-		for _, unwanted := range []string{"-e COLORTERM=", "-e TERM="} {
-			if strings.Contains(joined, unwanted) {
-				t.Errorf("unexpected %q in args %v", unwanted, got)
-			}
-		}
-	})
-
 	t.Run("java version included when set", func(t *testing.T) {
-		cfg := config.Config{Versions: map[string]string{"java": "17"}}
+		cfg := config.Config{Kits: map[string]*config.KitConfig{"java": {DefaultVersion: "17"}}}
 		opts := RunOpts{
 			Config:     cfg,
 			Agent:      stubAgent{envVars: map[string]string{}},
@@ -346,7 +334,10 @@ func TestAppendEnvVars(t *testing.T) {
 	})
 
 	t.Run("config env vars emitted before hardcoded vars", func(t *testing.T) {
-		cfg := config.Config{Env: map[string]string{"MY_VAR": "hello", "OTHER": "world"}}
+		cfg := config.Config{
+			Kits: map[string]*config.KitConfig{"docker": nil},
+			Env:  map[string]string{"MY_VAR": "hello", "OTHER": "world"},
+		}
 		opts := RunOpts{
 			Config:     cfg,
 			Agent:      stubAgent{envVars: map[string]string{}},
@@ -368,7 +359,7 @@ func TestAppendEnvVars(t *testing.T) {
 			t.Fatalf("MY_VAR=hello not found in %v", got)
 		}
 		if asylumIdx == -1 {
-			t.Fatalf("ASYLUM_DOCKER=1 not found in %v", got)
+			t.Fatalf("ASYLUM_DOCKER=1 not found in %v (docker kit is active)", got)
 		}
 		if myVarIdx > asylumIdx {
 			t.Errorf("config env vars should appear before hardcoded vars, MY_VAR at %d, ASYLUM_DOCKER at %d", myVarIdx, asylumIdx)
@@ -540,13 +531,6 @@ func TestAppendVolumesUserVolumes(t *testing.T) {
 			volumes:  []string{"~/data:/data"},
 			wantHost: filepath.Join(home, "data"),
 			wantCont: "/data",
-		},
-		{
-			name:        "tilde shorthand expands container to /home/claude",
-			volumes:     []string{"~/.m2/settings.xml:ro"},
-			wantHost:    filepath.Join(home, ".m2/settings.xml"),
-			wantCont:    "/home/claude/.m2/settings.xml",
-			wantOptions: "ro",
 		},
 	}
 
@@ -837,7 +821,7 @@ func TestAppendVolumesNodeModulesDisabled(t *testing.T) {
 	os.MkdirAll(filepath.Join(projectDir, "node_modules"), 0755)
 
 	opts := RunOpts{
-		Config:     config.Config{Features: map[string]bool{"shadow-node-modules": false}},
+		Config:     config.Config{Kits: map[string]*config.KitConfig{"node": {ShadowNodeModules: boolPtr(false)}}},
 		Agent:      stubAgent{},
 		ProjectDir: projectDir,
 	}

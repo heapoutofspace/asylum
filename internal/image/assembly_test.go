@@ -6,13 +6,13 @@ import (
 
 	"github.com/inventage-ai/asylum/assets"
 	"github.com/inventage-ai/asylum/internal/agent"
-	"github.com/inventage-ai/asylum/internal/profile"
+	"github.com/inventage-ai/asylum/internal/kit"
 )
 
 func allAgentInstalls(t *testing.T) []*agent.AgentInstall {
 	t.Helper()
-	all := []string{"claude", "codex", "gemini", "opencode"}
-	installs, err := agent.ResolveInstalls(&all, []string{"node"})
+	all := map[string]bool{"claude": true, "codex": true, "gemini": true, "opencode": true}
+	installs, err := agent.ResolveInstalls(all, []string{"node"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func claudeOnlyInstalls(t *testing.T) []*agent.AgentInstall {
 }
 
 func TestAssembleDockerfile_AllProfiles(t *testing.T) {
-	profiles, err := profile.Resolve(nil)
+	profiles, err := kit.Resolve(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,8 +54,8 @@ func TestAssembleDockerfile_AllProfiles(t *testing.T) {
 }
 
 func TestAssembleDockerfile_NoProfiles(t *testing.T) {
-	empty := []string{}
-	profiles, err := profile.Resolve(&empty)
+	noKits := []string{}
+	profiles, err := kit.Resolve(noKits)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestAssembleDockerfile_NoProfiles(t *testing.T) {
 }
 
 func TestAssembleDockerfile_AgentSnippets(t *testing.T) {
-	profiles, _ := profile.Resolve(nil)
+	profiles, _ := kit.Resolve(nil)
 
 	t.Run("all agents", func(t *testing.T) {
 		df := string(assembleDockerfile(profiles, allAgentInstalls(t)))
@@ -106,8 +106,8 @@ func TestAssembleDockerfile_AgentSnippets(t *testing.T) {
 	})
 
 	t.Run("no agents", func(t *testing.T) {
-		empty := []string{}
-		noAgents, _ := agent.ResolveInstalls(&empty, nil)
+		empty := map[string]bool{}
+		noAgents, _ := agent.ResolveInstalls(empty, nil)
 		df := string(assembleDockerfile(profiles, noAgents))
 		if strings.Contains(df, "claude.ai/install.sh") {
 			t.Error("should not contain claude snippet")
@@ -116,7 +116,7 @@ func TestAssembleDockerfile_AgentSnippets(t *testing.T) {
 }
 
 func TestAssembleEntrypoint_AllProfiles(t *testing.T) {
-	profiles, err := profile.Resolve(nil)
+	profiles, err := kit.Resolve(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,8 +132,8 @@ func TestAssembleEntrypoint_AllProfiles(t *testing.T) {
 }
 
 func TestAssembleEntrypoint_NoProfiles(t *testing.T) {
-	empty := []string{}
-	profiles, err := profile.Resolve(&empty)
+	noKits := []string{}
+	profiles, err := kit.Resolve(noKits)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestAssembleEntrypoint_NoProfiles(t *testing.T) {
 }
 
 func TestAssembleEntrypoint_BannerLines(t *testing.T) {
-	profiles, _ := profile.Resolve(nil)
+	profiles, _ := kit.Resolve(nil)
 
 	t.Run("all profiles and agents", func(t *testing.T) {
 		ep := string(assembleEntrypoint(profiles, allAgentInstalls(t)))
@@ -184,8 +184,8 @@ func TestAssembleEntrypoint_BannerLines(t *testing.T) {
 	})
 
 	t.Run("no agents", func(t *testing.T) {
-		empty := []string{}
-		noAgents, _ := agent.ResolveInstalls(&empty, nil)
+		empty := map[string]bool{}
+		noAgents, _ := agent.ResolveInstalls(empty, nil)
 		ep := string(assembleEntrypoint(profiles, noAgents))
 		if strings.Contains(ep, "Claude:") {
 			t.Error("banner should NOT contain Claude when no agents")

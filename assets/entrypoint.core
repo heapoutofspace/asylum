@@ -3,28 +3,6 @@
 
 set -e
 
-# Start Docker daemon if enabled and running privileged
-if [ "${ASYLUM_DOCKER:-}" = "1" ]; then
-    if [ -S /var/run/docker.sock ] && docker info >/dev/null 2>&1; then
-        echo "Docker socket already available"
-    elif command -v dockerd >/dev/null 2>&1; then
-        echo "Starting Docker daemon..."
-        sudo dockerd --storage-driver=vfs --log-level=warn >/tmp/dockerd.log 2>&1 &
-        DOCKERD_PID=$!
-        disown $DOCKERD_PID
-        for i in $(seq 1 30); do
-            if docker info >/dev/null 2>&1; then
-                echo "Docker daemon ready"
-                break
-            fi
-            sleep 1
-        done
-        if ! docker info >/dev/null 2>&1; then
-            echo "Warning: Docker daemon failed to start (check /tmp/dockerd.log)"
-        fi
-    fi
-fi
-
 # Ensure proper PATH
 export PATH="$HOME/.local/share/fnm:$HOME/.local/bin:$PATH"
 

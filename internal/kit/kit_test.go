@@ -1,11 +1,11 @@
-package profile
+package kit
 
 import (
 	"testing"
 )
 
 func setupTestRegistry() func() {
-	old := make(map[string]*Profile, len(registry))
+	old := make(map[string]*Kit, len(registry))
 	for k, v := range registry {
 		old[k] = v
 	}
@@ -15,16 +15,16 @@ func setupTestRegistry() func() {
 		delete(registry, k)
 	}
 
-	Register(&Profile{
+	Register(&Kit{
 		Name: "alpha",
-		SubProfiles: map[string]*Profile{
+		SubKits: map[string]*Kit{
 			"sub1": {Name: "alpha/sub1"},
 			"sub2": {Name: "alpha/sub2"},
 		},
 	})
-	Register(&Profile{
+	Register(&Kit{
 		Name:        "beta",
-		SubProfiles: map[string]*Profile{},
+		SubKits: map[string]*Kit{},
 	})
 
 	return func() {
@@ -37,7 +37,7 @@ func setupTestRegistry() func() {
 	}
 }
 
-func profileNames(profiles []*Profile) []string {
+func profileNames(profiles []*Kit) []string {
 	names := make([]string, len(profiles))
 	for i, p := range profiles {
 		names[i] = p.Name
@@ -70,7 +70,7 @@ func TestResolve_EmptyMeansNone(t *testing.T) {
 	defer cleanup()
 
 	empty := []string{}
-	profiles, err := Resolve(&empty)
+	profiles, err := Resolve(empty)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestResolve_TopLevelActivatesAllChildren(t *testing.T) {
 	defer cleanup()
 
 	names := []string{"alpha"}
-	profiles, err := Resolve(&names)
+	profiles, err := Resolve(names)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestResolve_ChildActivatesParentOnly(t *testing.T) {
 	defer cleanup()
 
 	names := []string{"alpha/sub1"}
-	profiles, err := Resolve(&names)
+	profiles, err := Resolve(names)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestResolve_Deduplication(t *testing.T) {
 
 	// Both "alpha" and "alpha/sub1" — alpha should appear only once
 	names := []string{"alpha", "alpha/sub1"}
-	profiles, err := Resolve(&names)
+	profiles, err := Resolve(names)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestResolve_AllChildrenEquivalent(t *testing.T) {
 
 	// Selecting all children individually should be same as parent
 	names := []string{"alpha/sub1", "alpha/sub2"}
-	profiles, err := Resolve(&names)
+	profiles, err := Resolve(names)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,14 +160,14 @@ func TestResolve_UnknownProfile(t *testing.T) {
 	defer cleanup()
 
 	names := []string{"unknown"}
-	_, err := Resolve(&names)
+	_, err := Resolve(names)
 	if err == nil {
 		t.Fatal("expected error for unknown profile")
 	}
 }
 
 func TestAggregateCacheDirs(t *testing.T) {
-	profiles := []*Profile{
+	profiles := []*Kit{
 		{Name: "a", CacheDirs: map[string]string{"npm": "/home/claude/.npm"}},
 		{Name: "b", CacheDirs: map[string]string{"pip": "/home/claude/.cache/pip"}},
 		{Name: "c"}, // no cache dirs
@@ -196,7 +196,7 @@ func TestResolve_UnknownSubProfile(t *testing.T) {
 	defer cleanup()
 
 	names := []string{"alpha/unknown"}
-	_, err := Resolve(&names)
+	_, err := Resolve(names)
 	if err == nil {
 		t.Fatal("expected error for unknown sub-profile")
 	}

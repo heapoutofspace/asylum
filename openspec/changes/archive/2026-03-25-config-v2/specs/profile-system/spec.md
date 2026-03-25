@@ -1,13 +1,13 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
-### Requirement: Kit struct
-A kit SHALL be a Go struct with fields: Name, Description, DockerSnippet, EntrypointSnippet, BannerLines, CacheDirs, OnboardingTasks, and SubKits. The package SHALL be named `kit` and the type SHALL be named `Kit`.
+### Requirement: Profile struct
+A kit SHALL be a Go struct with fields: Name, Description, DockerSnippet, EntrypointSnippet, BannerLines, CacheDirs, Config, OnboardingTasks, and SubKits. The package SHALL be named `kit` and the type SHALL be named `Kit`.
 
 #### Scenario: Kit with sub-kits
 - **WHEN** a kit is defined with SubKits containing child kits
 - **THEN** each child kit is a complete Kit struct accessible by name
 
-### Requirement: Built-in kit registry
+### Requirement: Built-in profile registry
 The system SHALL provide a registry of built-in kits: `java` (with sub-kits `maven`, `gradle`), `python` (with sub-kit `uv`), and `node` (with sub-kits `npm`, `pnpm`, `yarn`).
 
 #### Scenario: Registry lookup by name
@@ -46,3 +46,13 @@ A kit activated through multiple paths SHALL appear only once in the resolved li
 #### Scenario: Kit activated by name and by sub-kit
 - **WHEN** the kits map contains both `java: {}` and `java/maven: {}`
 - **THEN** the java kit and maven sub-kit each appear exactly once
+
+## RENAMED Requirements
+
+### Requirement: Profile struct
+- **FROM**: Profile struct
+- **TO**: Kit struct
+
+### Requirement: Built-in profile registry
+- **FROM**: Built-in profile registry
+- **TO**: Built-in kit registry

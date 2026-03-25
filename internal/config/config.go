@@ -11,40 +11,149 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// KitConfig holds per-kit configuration options.
+type KitConfig struct {
+	Versions            []string `yaml:"versions,omitempty"`
+	DefaultVersion      string   `yaml:"default-version,omitempty"`
+	Packages            []string `yaml:"packages,omitempty"`
+	ShadowNodeModules   *bool    `yaml:"shadow-node-modules,omitempty"`
+	Onboarding          *bool    `yaml:"onboarding,omitempty"`
+	TabTitle            string   `yaml:"tab-title,omitempty"`
+	AllowAgentTermTitle *bool    `yaml:"allow-agent-terminal-title,omitempty"`
+	Build               []string `yaml:"build,omitempty"`
+	Start               []string `yaml:"start,omitempty"`
+}
+
+// AgentConfig holds per-agent configuration (empty for now, placeholder for future use).
+type AgentConfig struct{}
+
 type Config struct {
-	Agent          string              `yaml:"agent"`
-	ReleaseChannel string              `yaml:"release-channel"`
-	TabTitle       string              `yaml:"tab-title"`
-	Profiles       *[]string           `yaml:"profiles"` // nil = all, empty = none
-	Agents         *[]string           `yaml:"agents"`   // nil = claude-only, empty = none
-	Ports          []string            `yaml:"ports"`
-	Volumes        []string            `yaml:"volumes"`
-	Env            map[string]string   `yaml:"env"`
-	Versions       map[string]string   `yaml:"versions"`
-	Packages       map[string][]string `yaml:"packages"`
-	Features       map[string]bool     `yaml:"features"`
-	Onboarding     map[string]bool     `yaml:"onboarding"`
+	Version        string                  `yaml:"version,omitempty"`
+	Agent          string                  `yaml:"agent,omitempty"`
+	ReleaseChannel string                  `yaml:"release-channel,omitempty"`
+	Kits           map[string]*KitConfig   `yaml:"kits,omitempty"`
+	Agents         map[string]*AgentConfig `yaml:"agents,omitempty"`
+	Ports          []string                `yaml:"ports,omitempty"`
+	Volumes        []string                `yaml:"volumes,omitempty"`
+	Env            map[string]string       `yaml:"env,omitempty"`
 }
 
-func (c Config) Feature(name string) bool {
-	return c.Features[name]
+// KitActive returns true if the named kit is present in the config.
+func (c Config) KitActive(name string) bool {
+	if c.Kits == nil {
+		return false
+	}
+	_, ok := c.Kits[name]
+	return ok
 }
 
-// FeatureOff returns true if a feature has been explicitly disabled.
-// Use for features that are on by default.
-func (c Config) FeatureOff(name string) bool {
-	v, ok := c.Features[name]
-	return ok && !v
+// KitOption returns the KitConfig for the named kit, or nil if not present.
+func (c Config) KitOption(name string) *KitConfig {
+	if c.Kits == nil {
+		return nil
+	}
+	return c.Kits[name]
+}
+
+// KitBool returns the value of a *bool kit option, defaulting to the given value if nil.
+func KitBool(b *bool, defaultVal bool) bool {
+	if b == nil {
+		return defaultVal
+	}
+	return *b
+}
+
+// AgentActive returns true if the named agent is present in the config.
+func (c Config) AgentActive(name string) bool {
+	if c.Agents == nil {
+		return false
+	}
+	_, ok := c.Agents[name]
+	return ok
+}
+
+// KitNames returns sorted kit names from the map, or nil if Kits is nil.
+func (c Config) KitNames() []string {
+	if c.Kits == nil {
+		return nil
+	}
+	names := make([]string, 0, len(c.Kits))
+	for k := range c.Kits {
+		names = append(names, k)
+	}
+	slices.Sort(names)
+	return names
+}
+
+// AgentNames returns sorted agent names from the map, or nil if Agents is nil.
+func (c Config) AgentNames() []string {
+	if c.Agents == nil {
+		return nil
+	}
+	names := make([]string, 0, len(c.Agents))
+	for k := range c.Agents {
+		names = append(names, k)
+	}
+	slices.Sort(names)
+	return names
+}
+
+// JavaVersion returns the effective java version from the java kit's DefaultVersion.
+func (c Config) JavaVersion() string {
+	if kc := c.KitOption("java"); kc != nil {
+		return kc.DefaultVersion
+	}
+	return ""
+}
+
+// TabTitle returns the tab title from the title kit, or empty string.
+func (c Config) TabTitle() string {
+	if kc := c.KitOption("title"); kc != nil {
+		return kc.TabTitle
+	}
+	return ""
+}
+
+// ShadowNodeModulesOff returns true if shadow-node-modules is explicitly disabled.
+func (c Config) ShadowNodeModulesOff() bool {
+	if kc := c.KitOption("node"); kc != nil && kc.ShadowNodeModules != nil {
+		return !*kc.ShadowNodeModules
+	}
+	return false
+}
+
+// AllowAgentTermTitle returns true if agent terminal title is allowed.
+func (c Config) AllowAgentTermTitle() bool {
+	if kc := c.KitOption("title"); kc != nil && kc.AllowAgentTermTitle != nil {
+		return *kc.AllowAgentTermTitle
+	}
+	return false
+}
+
+// OnboardingEnabled returns whether onboarding is enabled for the given kit.
+func (c Config) OnboardingEnabled(kitName string) bool {
+	if kc := c.KitOption(kitName); kc != nil && kc.Onboarding != nil {
+		return *kc.Onboarding
+	}
+	return false
+}
+
+// Packages returns all packages for a given kit, or nil.
+func (c Config) KitPackages(kitName string) []string {
+	if kc := c.KitOption(kitName); kc != nil {
+		return kc.Packages
+	}
+	return nil
 }
 
 type CLIFlags struct {
-	Agent    string
-	Profiles *[]string
-	Agents   *[]string
-	Ports    []string
-	Volumes  []string
-	Env      map[string]string
-	Java     string
+	Agent   string
+	Kits    *[]string
+	Agents  *[]string
+	Ports   []string
+	Volumes []string
+	Env     map[string]string
+	Java    string
 }
 
 type Volume struct {
@@ -65,6 +174,11 @@ func Load(projectDir string, flags CLIFlags) (Config, error) {
 		filepath.Join(projectDir, ".asylum"),
 		filepath.Join(projectDir, ".asylum.local"),
 	} {
+		if NeedsMigration(path) {
+			if err := MigrateV1ToV2(path); err != nil {
+				return Config{}, fmt.Errorf("migrate %s: %w", path, err)
+			}
+		}
 		layer, err := LoadFile(path)
 		if err != nil {
 			return Config{}, fmt.Errorf("%s: %w", path, err)
@@ -72,8 +186,17 @@ func Load(projectDir string, flags CLIFlags) (Config, error) {
 		cfg = Merge(cfg, layer)
 	}
 
-	if java := readToolVersionsJava(projectDir); java != "" && cfg.Versions["java"] == "" {
-		cfg.Versions = setVersion(cfg.Versions, "java", java)
+	// Read Java version from .tool-versions if not already set
+	if java := readToolVersionsJava(projectDir); java != "" && cfg.JavaVersion() == "" {
+		if cfg.Kits == nil {
+			cfg.Kits = map[string]*KitConfig{}
+		}
+		if cfg.Kits["java"] == nil {
+			cfg.Kits["java"] = &KitConfig{}
+		}
+		if cfg.Kits["java"].DefaultVersion == "" {
+			cfg.Kits["java"].DefaultVersion = java
+		}
 	}
 
 	cfg = applyFlags(cfg, flags)
@@ -108,18 +231,21 @@ func LoadFile(path string) (Config, error) {
 func Merge(base, overlay Config) Config {
 	result := base
 
+	if overlay.Version != "" {
+		result.Version = overlay.Version
+	}
 	if overlay.Agent != "" {
 		result.Agent = overlay.Agent
 	}
 	if overlay.ReleaseChannel != "" {
 		result.ReleaseChannel = overlay.ReleaseChannel
 	}
-	if overlay.TabTitle != "" {
-		result.TabTitle = overlay.TabTitle
+
+	// Kits: last-wins (overlay replaces entirely)
+	if overlay.Kits != nil {
+		result.Kits = overlay.Kits
 	}
-	if overlay.Profiles != nil {
-		result.Profiles = overlay.Profiles
-	}
+	// Agents: last-wins
 	if overlay.Agents != nil {
 		result.Agents = overlay.Agents
 	}
@@ -134,38 +260,6 @@ func Merge(base, overlay Config) Config {
 		result.Env = merged
 	}
 
-	if overlay.Versions != nil {
-		merged := make(map[string]string, len(base.Versions)+len(overlay.Versions))
-		maps.Copy(merged, base.Versions)
-		maps.Copy(merged, overlay.Versions)
-		result.Versions = merged
-	}
-
-	if overlay.Features != nil {
-		merged := make(map[string]bool, len(base.Features)+len(overlay.Features))
-		maps.Copy(merged, base.Features)
-		maps.Copy(merged, overlay.Features)
-		result.Features = merged
-	}
-
-	if overlay.Onboarding != nil {
-		merged := make(map[string]bool, len(base.Onboarding)+len(overlay.Onboarding))
-		maps.Copy(merged, base.Onboarding)
-		maps.Copy(merged, overlay.Onboarding)
-		result.Onboarding = merged
-	}
-
-	if overlay.Packages != nil {
-		merged := make(map[string][]string, len(base.Packages)+len(overlay.Packages))
-		for k, v := range base.Packages {
-			merged[k] = append([]string(nil), v...)
-		}
-		for k, v := range overlay.Packages {
-			merged[k] = append(merged[k], v...)
-		}
-		result.Packages = merged
-	}
-
 	return result
 }
 
@@ -173,14 +267,28 @@ func applyFlags(cfg Config, flags CLIFlags) Config {
 	if flags.Agent != "" {
 		cfg.Agent = flags.Agent
 	}
-	if flags.Profiles != nil {
-		cfg.Profiles = flags.Profiles
+	if flags.Kits != nil {
+		m := make(map[string]*KitConfig, len(*flags.Kits))
+		for _, name := range *flags.Kits {
+			m[name] = nil
+		}
+		cfg.Kits = m
 	}
 	if flags.Agents != nil {
-		cfg.Agents = flags.Agents
+		m := make(map[string]*AgentConfig, len(*flags.Agents))
+		for _, name := range *flags.Agents {
+			m[name] = nil
+		}
+		cfg.Agents = m
 	}
 	if flags.Java != "" {
-		cfg.Versions = setVersion(cfg.Versions, "java", flags.Java)
+		if cfg.Kits == nil {
+			cfg.Kits = map[string]*KitConfig{}
+		}
+		if cfg.Kits["java"] == nil {
+			cfg.Kits["java"] = &KitConfig{}
+		}
+		cfg.Kits["java"].DefaultVersion = flags.Java
 	}
 	if flags.Env != nil {
 		if cfg.Env == nil {
@@ -207,14 +315,6 @@ func readToolVersionsJava(projectDir string) string {
 	return ""
 }
 
-func setVersion(m map[string]string, key, value string) map[string]string {
-	if m == nil {
-		m = make(map[string]string)
-	}
-	m[key] = value
-	return m
-}
-
 var mountOptions = map[string]bool{
 	"ro": true, "rw": true, "z": true, "Z": true,
 	"shared": true, "slave": true, "private": true,
@@ -233,26 +333,20 @@ func ExpandTilde(path, homeDir string) string {
 	return path
 }
 
-func ParseVolume(raw string, hostHome, containerHome string) Volume {
+func ParseVolume(raw string, homeDir string) Volume {
 	parts := strings.Split(raw, ":")
 
 	switch len(parts) {
 	case 1:
-		// "/data" → same path both sides
-		host := ExpandTilde(parts[0], hostHome)
-		ctr := ExpandTilde(parts[0], containerHome)
-		return Volume{Host: host, Container: ctr}
+		host := ExpandTilde(parts[0], homeDir)
+		return Volume{Host: host, Container: host}
 	case 2:
 		if mountOptions[parts[1]] {
-			// "/data:ro" → shorthand with option
-			host := ExpandTilde(parts[0], hostHome)
-			ctr := ExpandTilde(parts[0], containerHome)
-			return Volume{Host: host, Container: ctr, Options: parts[1]}
+			host := ExpandTilde(parts[0], homeDir)
+			return Volume{Host: host, Container: host, Options: parts[1]}
 		}
-		// "/host:/container"
-		return Volume{Host: ExpandTilde(parts[0], hostHome), Container: ExpandTilde(parts[1], containerHome)}
+		return Volume{Host: ExpandTilde(parts[0], homeDir), Container: parts[1]}
 	default:
-		// "/host:/container:opts" or more
-		return Volume{Host: ExpandTilde(parts[0], hostHome), Container: ExpandTilde(parts[1], containerHome), Options: strings.Join(parts[2:], ":")}
+		return Volume{Host: ExpandTilde(parts[0], homeDir), Container: parts[1], Options: strings.Join(parts[2:], ":")}
 	}
 }

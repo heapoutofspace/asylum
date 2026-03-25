@@ -12,7 +12,7 @@ import (
 type AgentInstall struct {
 	Name          string   // matches Agent.Name()
 	DockerSnippet string   // Dockerfile RUN instructions
-	ProfileDeps   []string // profile names this agent needs (e.g., ["node"])
+	KitDeps   []string // kit names this agent needs (e.g., ["node"])
 	BannerLine    string   // shell command for welcome banner
 }
 
@@ -33,24 +33,29 @@ func AllInstallNames() []string {
 	return names
 }
 
-// ResolveInstalls returns agent installs for the given names.
-// nil defaults to ["claude"]; empty slice means none.
-// Emits warnings for agents whose ProfileDeps are not in activeProfiles.
-func ResolveInstalls(names *[]string, activeProfiles []string) ([]*AgentInstall, error) {
+// ResolveInstalls returns agent installs for the given agent map.
+// nil map defaults to claude-only; empty map means none.
+// Also accepts a string slice (names) for CLI flag compatibility.
+// Emits warnings for agents whose KitDeps are not in activeKits.
+func ResolveInstalls(agents map[string]bool, activeKits []string) ([]*AgentInstall, error) {
 	var selected []string
-	if names == nil {
+	if agents == nil {
 		selected = []string{"claude"}
 	} else {
-		selected = *names
+		selected = make([]string, 0, len(agents))
+		for name := range agents {
+			selected = append(selected, name)
+		}
+		slices.Sort(selected)
 	}
 
 	if len(selected) == 0 {
 		return nil, nil
 	}
 
-	profileSet := map[string]bool{}
-	for _, p := range activeProfiles {
-		profileSet[p] = true
+	kitSet := map[string]bool{}
+	for _, p := range activeKits {
+		kitSet[p] = true
 	}
 
 	var result []*AgentInstall
@@ -64,9 +69,9 @@ func ResolveInstalls(names *[]string, activeProfiles []string) ([]*AgentInstall,
 		if !ok {
 			return nil, fmt.Errorf("unknown agent %q", name)
 		}
-		for _, dep := range i.ProfileDeps {
-			if !profileSet[dep] {
-				log.Warn("agent %q requires the %q profile which is not active", name, dep)
+		for _, dep := range i.KitDeps {
+			if !kitSet[dep] {
+				log.Warn("agent %q requires the %q kit which is not active", name, dep)
 			}
 		}
 		result = append(result, i)

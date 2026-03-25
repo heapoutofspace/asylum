@@ -12,20 +12,20 @@ import (
 	"github.com/inventage-ai/asylum/internal/agent"
 	"github.com/inventage-ai/asylum/internal/docker"
 	"github.com/inventage-ai/asylum/internal/log"
-	"github.com/inventage-ai/asylum/internal/profile"
+	"github.com/inventage-ai/asylum/internal/kit"
 )
 
 const baseTag = "asylum:latest"
 
 // assembleDockerfile builds a complete Dockerfile from core + profile snippets + agent snippets + tail.
-func assembleDockerfile(profiles []*profile.Profile, agentInstalls []*agent.AgentInstall) []byte {
+func assembleDockerfile(profiles []*kit.Kit, agentInstalls []*agent.AgentInstall) []byte {
 	var b strings.Builder
 	b.Write(assets.DockerfileCore)
 	if !strings.HasSuffix(string(assets.DockerfileCore), "\n") {
 		b.WriteByte('\n')
 	}
 	b.WriteByte('\n')
-	if snippets := profile.AssembleDockerSnippets(profiles); snippets != "" {
+	if snippets := kit.AssembleDockerSnippets(profiles); snippets != "" {
 		b.WriteString(snippets)
 	}
 	if snippets := agent.AssembleAgentSnippets(agentInstalls); snippets != "" {
@@ -37,36 +37,36 @@ func assembleDockerfile(profiles []*profile.Profile, agentInstalls []*agent.Agen
 
 // assembleEntrypoint builds a complete entrypoint from core + profile snippets + tail.
 // Banner lines from profiles and agents are inserted at the PROFILE_BANNER_PLACEHOLDER marker.
-func assembleEntrypoint(profiles []*profile.Profile, agentInstalls []*agent.AgentInstall) []byte {
+func assembleEntrypoint(profiles []*kit.Kit, agentInstalls []*agent.AgentInstall) []byte {
 	var b strings.Builder
 	b.Write(assets.EntrypointCore)
 	if !strings.HasSuffix(string(assets.EntrypointCore), "\n") {
 		b.WriteByte('\n')
 	}
 	b.WriteByte('\n')
-	if snippets := profile.AssembleEntrypointSnippets(profiles); snippets != "" {
+	if snippets := kit.AssembleEntrypointSnippets(profiles); snippets != "" {
 		b.WriteString(snippets)
 		b.WriteByte('\n')
 	}
 
 	// Insert banner lines at placeholder in tail
 	tail := string(assets.EntrypointTail)
-	bannerLines := profile.AssembleBannerLines(profiles) + agent.AssembleAgentBannerLines(agentInstalls)
+	bannerLines := kit.AssembleBannerLines(profiles) + agent.AssembleAgentBannerLines(agentInstalls)
 	tail = strings.Replace(tail, "# PROFILE_BANNER_PLACEHOLDER\n", bannerLines, 1)
 
 	b.WriteString(tail)
 	return []byte(b.String())
 }
 
-func baseHash(profiles []*profile.Profile, agentInstalls []*agent.AgentInstall) string {
+func baseHash(profiles []*kit.Kit, agentInstalls []*agent.AgentInstall) string {
 	h := sha256.New()
 	h.Write(assets.DockerfileCore)
 	h.Write(assets.DockerfileTail)
 	h.Write(assets.EntrypointCore)
 	h.Write(assets.EntrypointTail)
-	h.Write([]byte(profile.AssembleDockerSnippets(profiles)))
-	h.Write([]byte(profile.AssembleEntrypointSnippets(profiles)))
-	h.Write([]byte(profile.AssembleBannerLines(profiles)))
+	h.Write([]byte(kit.AssembleDockerSnippets(profiles)))
+	h.Write([]byte(kit.AssembleEntrypointSnippets(profiles)))
+	h.Write([]byte(kit.AssembleBannerLines(profiles)))
 	h.Write([]byte(agent.AssembleAgentSnippets(agentInstalls)))
 	h.Write([]byte(agent.AssembleAgentBannerLines(agentInstalls)))
 	return fmt.Sprintf("%x", h.Sum(nil))
@@ -92,7 +92,7 @@ func buildImage(dockerfileContent []byte, extraFiles map[string][]byte, tag stri
 	return docker.Build(tmpDir, dfPath, tag, labels, buildArgs, noCache)
 }
 
-func EnsureBase(profiles []*profile.Profile, agentInstalls []*agent.AgentInstall, version string, noCache bool) (bool, error) {
+func EnsureBase(profiles []*kit.Kit, agentInstalls []*agent.AgentInstall, version string, noCache bool) (bool, error) {
 	hash := baseHash(profiles, agentInstalls)
 
 	existing, err := docker.InspectLabel(baseTag, "asylum.hash")
@@ -131,8 +131,8 @@ func EnsureBase(profiles []*profile.Profile, agentInstalls []*agent.AgentInstall
 // Pre-installed Java versions in the base image.
 var preinstalledJava = map[string]bool{"17": true, "21": true, "25": true}
 
-func EnsureProject(projectProfiles []*profile.Profile, packages map[string][]string, javaVersion string, version string, baseRebuilt bool, noCache bool) (string, error) {
-	profileSnippets := profile.AssembleDockerSnippets(projectProfiles)
+func EnsureProject(projectProfiles []*kit.Kit, packages map[string][]string, javaVersion string, version string, baseRebuilt bool, noCache bool) (string, error) {
+	profileSnippets := kit.AssembleDockerSnippets(projectProfiles)
 	needsCustomJava := javaVersion != "" && !preinstalledJava[javaVersion]
 
 	if len(packages) == 0 && !needsCustomJava && profileSnippets == "" {

@@ -235,11 +235,11 @@ func TestParseArgs(t *testing.T) {
 			wantFlags: cliFlags{SkipOnboarding: true},
 		},
 
-		// --profiles flag
+		// --kits flag
 		{
-			name:      "profiles flag",
-			args:      []string{"--profiles", "java,python"},
-			wantFlags: cliFlags{Profiles: &[]string{"java", "python"}},
+			name:      "kits flag",
+			args:      []string{"--kits", "java,python"},
+			wantFlags: cliFlags{Kits: &[]string{"java", "python"}},
 		},
 
 		// --agents flag

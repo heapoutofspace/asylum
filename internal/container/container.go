@@ -20,7 +20,7 @@ import (
 var invalidHostnameChars = regexp.MustCompile(`[^a-z0-9-]`)
 
 // DefaultCacheDirs is the fallback cache dir map when no profiles are configured.
-// Deprecated: use profile.AggregateCacheDirs instead.
+// Deprecated: use kit.AggregateCacheDirs instead.
 var DefaultCacheDirs = map[string]string{
 	"npm":    "/home/claude/.npm",
 	"pip":    "/home/claude/.cache/pip",
@@ -55,10 +55,13 @@ func RunArgs(opts RunOpts) ([]string, error) {
 	hostname := safeHostname(opts.ProjectDir)
 
 	args := []string{
-		"run", "-d", "--rm", "--privileged", "--init",
+		"run", "-d", "--rm", "--init",
 		"--name", containerName,
 		"--hostname", hostname,
 		"-w", opts.ProjectDir,
+	}
+	if opts.Config.KitActive("docker") {
+		args = append(args, "--privileged")
 	}
 
 	args, err = appendVolumes(args, home, containerName, opts)
@@ -114,7 +117,7 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	// Shadow node_modules with named volumes so host OS-specific
 	// binaries aren't visible inside the container. Named volumes
 	// persist across container restarts so npm install isn't lost.
-	if !opts.Config.FeatureOff("shadow-node-modules") {
+	if !opts.Config.ShadowNodeModulesOff() {
 		for _, nm := range FindNodeModulesDirs(opts.ProjectDir) {
 			rel, _ := filepath.Rel(opts.ProjectDir, nm)
 			hash := fmt.Sprintf("%x", sha256.Sum256([]byte(rel)))[:11]
@@ -174,7 +177,7 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	}
 
 	for _, v := range opts.Config.Volumes {
-		parsed := config.ParseVolume(v, home, "/home/claude")
+		parsed := config.ParseVolume(v, home)
 		vol(parsed.Host, parsed.Container, parsed.Options)
 	}
 
@@ -190,20 +193,18 @@ func appendEnvVars(args []string, opts RunOpts) []string {
 		env(k, opts.Config.Env[k])
 	}
 
-	env("ASYLUM_DOCKER", "1")
-	if v := os.Getenv("COLORTERM"); v != "" {
-		env("COLORTERM", v)
+	if opts.Config.KitActive("docker") {
+		env("ASYLUM_DOCKER", "1")
 	}
-	if v := os.Getenv("TERM"); v != "" {
-		env("TERM", v)
-	}
-	if !opts.Config.Feature("allow-agent-terminal-title") {
+	env("COLORTERM", "truecolor")
+	env("TERM", "xterm-256color")
+	if !opts.Config.AllowAgentTermTitle() {
 		env("CLAUDE_CODE_DISABLE_TERMINAL_TITLE", "1")
 	}
 	env("HISTFILE", "/home/claude/.shell_history/zsh_history")
 	env("HOST_PROJECT_DIR", opts.ProjectDir)
 
-	if java := opts.Config.Versions["java"]; java != "" {
+	if java := opts.Config.JavaVersion(); java != "" {
 		env("ASYLUM_JAVA_VERSION", java)
 	}
 
@@ -271,7 +272,7 @@ func ExecArgs(opts ExecOpts) []string {
 func agentCommand(opts ExecOpts) []string {
 	resume := !opts.NewSession && opts.Agent.HasSession(opts.ProjectDir)
 	extra := opts.ExtraArgs
-	if opts.Config.Feature("session-name") && opts.Agent.Name() == "claude" && !resume {
+	if opts.Config.KitActive("title") && opts.Agent.Name() == "claude" && !resume {
 		extra = append([]string{"--name", filepath.Base(opts.ProjectDir)}, extra...)
 	}
 	return opts.Agent.Command(resume, extra)

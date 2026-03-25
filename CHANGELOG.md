@@ -15,6 +15,7 @@
 - Dynamic welcome banner showing versions only for active profiles and installed agents
 - Configurable agent CLI installation via `agents` config and `--agents` CLI flag (default: claude only)
 - Opencode agent support (`agents: [opencode]`)
+- Docker-in-Docker as optional `docker` kit (active by default, remove to disable for smaller images and non-privileged containers)
 - First-run onboarding: prompts to mount package manager credentials (Maven) on initial setup
 - Project onboarding framework: scans for setup tasks, prompts once, executes via `docker exec` with proper error handling
 - Node.js dependency auto-install as first onboarding task (disable with `onboarding: { npm: false }`)
@@ -23,6 +24,8 @@
 - `onboarding` config section for per-task control; `features: { onboarding: false }` for global disable
 
 ### Changed
+- **BREAKING**: Config format v2 — profiles renamed to kits, per-kit options replace top-level fields (`features`, `packages`, `versions`, `onboarding`). Existing configs are migrated automatically.
+- Agents config field is now a map (`agents: {claude:}`) instead of a list
 - Cache directories (npm, pip, maven, gradle) now use named Docker volumes instead of bind mounts for better IO on macOS
 
 ### Fixed

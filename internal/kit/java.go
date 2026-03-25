@@ -1,9 +1,7 @@
-package profile
-
-import "github.com/inventage-ai/asylum/internal/config"
+package kit
 
 func init() {
-	Register(&Profile{
+	Register(&Kit{
 		Name:        "java",
 		Description: "Java via mise with JDK 17/21/25",
 		DockerSnippet: `# Install Java versions via mise
@@ -21,10 +19,7 @@ fi
 `,
 		BannerLines: `    echo "Java:      $(java -version 2>&1 | head -1 | cut -d'"' -f2 || echo 'not found')"
 `,
-		Config: config.Config{
-			Versions: map[string]string{"java": "21"},
-		},
-		SubProfiles: map[string]*Profile{
+		SubKits: map[string]*Kit{
 			"maven": {
 				Name:        "java/maven",
 				Description: "Maven dependency caching",

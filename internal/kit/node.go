@@ -1,9 +1,9 @@
-package profile
+package kit
 
 import "github.com/inventage-ai/asylum/internal/onboarding"
 
 func init() {
-	Register(&Profile{
+	Register(&Kit{
 		Name:        "node",
 		Description: "Node.js global development packages",
 		DockerSnippet: `# Install Node.js global packages
@@ -19,7 +19,7 @@ RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && 
 `,
 		BannerLines: `    echo "Node.js:   $(node --version 2>/dev/null || echo 'not found')"
 `,
-		SubProfiles: map[string]*Profile{
+		SubKits: map[string]*Kit{
 			"npm": {
 				Name:            "node/npm",
 				Description:     "npm with caching and onboarding",
