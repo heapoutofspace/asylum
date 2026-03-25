@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-
-	"github.com/inventage-ai/asylum/internal/term"
 )
 
 type Agent interface {
@@ -43,12 +41,6 @@ func Get(name string) (Agent, error) {
 func wrapZsh(cmd string) []string {
 	return []string{"zsh", "-c", "source ~/.zshrc && exec " + cmd}
 }
-
-// shellQuote delegates to term.ShellQuote for backward compatibility within this package.
-var shellQuote = term.ShellQuote
-
-// quoteArgs delegates to term.ShellQuoteArgs for backward compatibility within this package.
-var quoteArgs = term.ShellQuoteArgs
 
 func expandHome(path string) (string, error) {
 	if strings.HasPrefix(path, "~/") {

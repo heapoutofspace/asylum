@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/inventage-ai/asylum/internal/term"
 )
 
 func init() {
@@ -57,6 +59,6 @@ func (Claude) Command(resume bool, extraArgs []string) []string {
 	if resume {
 		parts = append(parts, "--continue")
 	}
-	parts = append(parts, quoteArgs(extraArgs)...)
+	parts = append(parts, term.ShellQuoteArgs(extraArgs)...)
 	return wrapZsh(strings.Join(parts, " "))
 }

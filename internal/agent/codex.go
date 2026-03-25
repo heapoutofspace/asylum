@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/inventage-ai/asylum/internal/log"
+	"github.com/inventage-ai/asylum/internal/term"
 )
 
 func init() {
@@ -74,6 +75,6 @@ func (Codex) Command(resume bool, extraArgs []string) []string {
 		log.Warn("codex: resume skipped because extra args were provided")
 	}
 	parts := []string{"codex", "--yolo"}
-	parts = append(parts, quoteArgs(extraArgs)...)
+	parts = append(parts, term.ShellQuoteArgs(extraArgs)...)
 	return wrapZsh(strings.Join(parts, " "))
 }

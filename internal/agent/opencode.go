@@ -1,6 +1,10 @@
 package agent
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/inventage-ai/asylum/internal/term"
+)
 
 func init() {
 	agents["opencode"] = Opencode{}
@@ -28,6 +32,6 @@ func (Opencode) HasSession(_ string) bool { return false }
 
 func (Opencode) Command(resume bool, extraArgs []string) []string {
 	parts := []string{"opencode"}
-	parts = append(parts, quoteArgs(extraArgs)...)
+	parts = append(parts, term.ShellQuoteArgs(extraArgs)...)
 	return wrapZsh(strings.Join(parts, " "))
 }

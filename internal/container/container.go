@@ -21,9 +21,8 @@ import (
 
 var invalidHostnameChars = regexp.MustCompile(`[^a-z0-9-]`)
 
-// DefaultCacheDirs is the fallback cache dir map when no profiles are configured.
-// Deprecated: use kit.AggregateCacheDirs instead.
-var DefaultCacheDirs = map[string]string{
+// defaultCacheDirs is the fallback cache dir map when no profiles are configured.
+var defaultCacheDirs = map[string]string{
 	"npm":    "/home/claude/.npm",
 	"pip":    "/home/claude/.cache/pip",
 	"maven":  "/home/claude/.m2",
@@ -151,7 +150,7 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	// Caches (named volumes for better IO on macOS)
 	cacheDirs := opts.CacheDirs
 	if cacheDirs == nil {
-		cacheDirs = DefaultCacheDirs
+		cacheDirs = defaultCacheDirs
 	}
 	for _, name := range slices.Sorted(maps.Keys(cacheDirs)) {
 		volName := cname + "-cache-" + name
