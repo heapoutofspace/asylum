@@ -194,6 +194,14 @@ func generateProjectDockerfile(profileSnippets string, packages map[string][]str
 			return "", err
 		}
 	}
+	for _, cmd := range packages["run"] {
+		if strings.ContainsAny(cmd, "\n\r") {
+			return "", fmt.Errorf("invalid run command: must not contain newlines")
+		}
+		if strings.TrimSpace(cmd) == "" {
+			return "", fmt.Errorf("invalid run command: must not be empty")
+		}
+	}
 
 	var b strings.Builder
 	b.WriteString("FROM asylum:latest\n")
