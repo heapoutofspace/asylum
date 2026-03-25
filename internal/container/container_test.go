@@ -300,7 +300,10 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{}},
 			ProjectDir: "/work/myproject",
 		}
-		got := appendEnvVars([]string{}, opts)
+		got, err := appendEnvVars([]string{}, opts)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 		joined := strings.Join(got, " ")
 		if !strings.Contains(joined, "ASYLUM_DOCKER=1") {
 			t.Error("ASYLUM_DOCKER=1 should be set when docker kit is active")
@@ -313,7 +316,10 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{}},
 			ProjectDir: "/work/myproject",
 		}
-		got := appendEnvVars([]string{}, opts)
+		got, err := appendEnvVars([]string{}, opts)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 		joined := strings.Join(got, " ")
 		if strings.Contains(joined, "ASYLUM_DOCKER") {
 			t.Error("ASYLUM_DOCKER should NOT be set when docker kit is inactive")
@@ -326,7 +332,10 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{}},
 			ProjectDir: "/work/myproject",
 		}
-		got := appendEnvVars([]string{}, opts)
+		got, err := appendEnvVars([]string{}, opts)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 		joined := strings.Join(got, " ")
 
 		for _, want := range []string{
@@ -348,7 +357,10 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{}},
 			ProjectDir: "/work/proj",
 		}
-		got := appendEnvVars([]string{}, opts)
+		got, err := appendEnvVars([]string{}, opts)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 		joined := strings.Join(got, " ")
 		if !strings.Contains(joined, "-e ASYLUM_JAVA_VERSION=17") {
 			t.Errorf("expected ASYLUM_JAVA_VERSION=17 in %v", got)
@@ -361,7 +373,10 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{}},
 			ProjectDir: "/work/proj",
 		}
-		got := appendEnvVars([]string{}, opts)
+		got, err := appendEnvVars([]string{}, opts)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 		for _, v := range got {
 			if strings.HasPrefix(v, "ASYLUM_JAVA_VERSION") {
 				t.Errorf("unexpected ASYLUM_JAVA_VERSION in %v", got)
@@ -379,7 +394,10 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{}},
 			ProjectDir: "/work/proj",
 		}
-		got := appendEnvVars([]string{}, opts)
+		got, err := appendEnvVars([]string{}, opts)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		// Find positions of config env vars and ASYLUM_DOCKER
 		myVarIdx, asylumIdx := -1, -1
@@ -417,7 +435,10 @@ func TestAppendEnvVars(t *testing.T) {
 			Agent:      stubAgent{envVars: map[string]string{"MY_TOKEN": "secret"}},
 			ProjectDir: "/work/proj",
 		}
-		got := appendEnvVars([]string{}, opts)
+		got, err := appendEnvVars([]string{}, opts)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 		joined := strings.Join(got, " ")
 		if !strings.Contains(joined, "-e MY_TOKEN=secret") {
 			t.Errorf("expected MY_TOKEN=secret in %v", got)

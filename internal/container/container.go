@@ -70,7 +70,10 @@ func RunArgs(opts RunOpts) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	args = appendEnvVars(args, opts)
+	args, err = appendEnvVars(args, opts)
+	if err != nil {
+		return nil, err
+	}
 	args, err = appendPorts(args, opts.Config.Ports)
 	if err != nil {
 		return nil, err
@@ -189,12 +192,15 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	return args, nil
 }
 
-func appendEnvVars(args []string, opts RunOpts) []string {
+func appendEnvVars(args []string, opts RunOpts) ([]string, error) {
 	env := func(k, v string) {
 		args = append(args, "-e", k+"="+v)
 	}
 
 	for _, k := range slices.Sorted(maps.Keys(opts.Config.Env)) {
+		if strings.ContainsAny(opts.Config.Env[k], "\n\r") {
+			return nil, fmt.Errorf("env var %q contains newlines, which Docker does not support", k)
+		}
 		env(k, opts.Config.Env[k])
 	}
 
@@ -218,7 +224,7 @@ func appendEnvVars(args []string, opts RunOpts) []string {
 		env(k, agentEnv[k])
 	}
 
-	return args
+	return args, nil
 }
 
 func validPort(s string) bool {
