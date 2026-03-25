@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/inventage-ai/asylum/internal/agent"
 	"github.com/inventage-ai/asylum/internal/config"
@@ -450,16 +451,33 @@ func DecrementSessions(containerName string) (int, error) {
 }
 
 func adjustCounter(path string, delta int) (int, error) {
-	data, err := os.ReadFile(path)
-	n := 0
-	if err == nil {
-		n, _ = strconv.Atoi(strings.TrimSpace(string(data)))
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return 0, fmt.Errorf("open counter: %w", err)
 	}
+	defer f.Close()
+
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		return 0, fmt.Errorf("lock counter: %w", err)
+	}
+
+	data, _ := os.ReadFile(path)
+	n, _ := strconv.Atoi(strings.TrimSpace(string(data)))
 	n += delta
 	if n < 0 {
 		n = 0
 	}
-	return n, os.WriteFile(path, []byte(strconv.Itoa(n)), 0644)
+
+	if err := f.Truncate(0); err != nil {
+		return n, fmt.Errorf("truncate counter: %w", err)
+	}
+	if _, err := f.Seek(0, 0); err != nil {
+		return n, fmt.Errorf("seek counter: %w", err)
+	}
+	if _, err := f.WriteString(strconv.Itoa(n)); err != nil {
+		return n, fmt.Errorf("write counter: %w", err)
+	}
+	return n, nil
 }
 
 func isTerminal() bool {
