@@ -238,6 +238,9 @@ type downloadResult struct {
 	contentLength int64
 }
 
+// maxDownloadSize is 512 MB, well above any expected binary size.
+const maxDownloadSize = 512 << 20
+
 func downloadToFile(w io.Writer, url string) (downloadResult, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -249,7 +252,16 @@ func downloadToFile(w io.Writer, url string) (downloadResult, error) {
 		return downloadResult{}, fmt.Errorf("download: HTTP %d", resp.StatusCode)
 	}
 
-	n, err := io.Copy(w, resp.Body)
+	if resp.ContentLength <= 0 {
+		return downloadResult{}, fmt.Errorf("download: missing or invalid Content-Length")
+	}
+
+	if resp.ContentLength > maxDownloadSize {
+		return downloadResult{}, fmt.Errorf("download: Content-Length %d exceeds limit of %d", resp.ContentLength, maxDownloadSize)
+	}
+
+	reader := io.LimitReader(resp.Body, maxDownloadSize)
+	n, err := io.Copy(w, reader)
 	if err != nil {
 		return downloadResult{}, fmt.Errorf("download: %w", err)
 	}
