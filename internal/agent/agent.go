@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -27,7 +28,12 @@ var agents = map[string]Agent{
 func Get(name string) (Agent, error) {
 	a, ok := agents[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown agent: %q (valid: claude, codex, echo, gemini, opencode)", name)
+		names := make([]string, 0, len(agents))
+		for k := range agents {
+			names = append(names, k)
+		}
+		slices.Sort(names)
+		return nil, fmt.Errorf("unknown agent: %q (valid: %s)", name, strings.Join(names, ", "))
 	}
 	return a, nil
 }
