@@ -227,8 +227,8 @@ func TestEchoCommand(t *testing.T) {
 	a := Echo{}
 	t.Run("with args", func(t *testing.T) {
 		cmd := a.Command(false, []string{"hello", "world"})
-		if len(cmd) != 2 || cmd[0] != "echo" || cmd[1] != "hello world" {
-			t.Errorf("got %v, want [echo, hello world]", cmd)
+		if len(cmd) != 3 || cmd[0] != "echo" || cmd[1] != "hello" || cmd[2] != "world" {
+			t.Errorf("got %v, want [echo hello world]", cmd)
 		}
 	})
 	t.Run("without args", func(t *testing.T) {

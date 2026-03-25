@@ -1,7 +1,5 @@
 package agent
 
-import "strings"
-
 func init() {
 	agents["echo"] = Echo{}
 }
@@ -18,8 +16,5 @@ func (Echo) EnvVars() map[string]string { return nil }
 func (Echo) HasSession(_ string) bool   { return false }
 
 func (Echo) Command(_ bool, extraArgs []string) []string {
-	if len(extraArgs) == 0 {
-		return []string{"echo"}
-	}
-	return []string{"echo", strings.Join(extraArgs, " ")}
+	return append([]string{"echo"}, extraArgs...)
 }
