@@ -79,7 +79,17 @@ kits:
 #   NODE_ENV: development
 `
 
-// WriteDefaults writes the default config to the given path if it doesn't exist.
+// WriteDefaults writes the default config to the given path if it doesn't
+// already exist. It uses O_CREATE|O_EXCL to avoid a TOCTOU race.
 func WriteDefaults(path string) error {
-	return os.WriteFile(path, []byte(defaultConfig), 0644)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	if err != nil {
+		if os.IsExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(defaultConfig)
+	return err
 }
