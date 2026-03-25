@@ -3,9 +3,10 @@ package agent
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/inventage-ai/asylum/internal/config"
 )
 
 type Agent interface {
@@ -42,19 +43,12 @@ func wrapZsh(cmd string) []string {
 	return []string{"zsh", "-c", "source ~/.zshrc && exec " + cmd}
 }
 
-func expandHome(path string) (string, error) {
-	if strings.HasPrefix(path, "~/") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		return filepath.Join(home, path[2:]), nil
-	}
-	return path, nil
-}
-
 // resolveConfigDir expands the agent's AsylumConfigDir (which uses ~ prefix)
 // to an absolute path.
 func resolveConfigDir(a Agent) (string, error) {
-	return expandHome(a.AsylumConfigDir())
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return config.ExpandTilde(a.AsylumConfigDir(), home), nil
 }
