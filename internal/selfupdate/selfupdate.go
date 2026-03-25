@@ -54,16 +54,9 @@ func SafeRun(execPath string) error {
 		return err
 	}
 
-	name := AssetName()
-	var downloadURL string
-	for _, a := range rel.Assets {
-		if a.Name == name {
-			downloadURL = a.BrowserDownloadURL
-			break
-		}
-	}
-	if downloadURL == "" {
-		return fmt.Errorf("no asset %q in release %s", name, rel.TagName)
+	downloadURL, err := findAssetURL(rel)
+	if err != nil {
+		return err
 	}
 
 	fmt.Println("downloading dev release...")
@@ -95,16 +88,9 @@ func Run(currentVersion, currentCommit, channel, execPath string) error {
 		return nil
 	}
 
-	name := AssetName()
-	var downloadURL string
-	for _, a := range rel.Assets {
-		if a.Name == name {
-			downloadURL = a.BrowserDownloadURL
-			break
-		}
-	}
-	if downloadURL == "" {
-		return fmt.Errorf("no asset %q in release %s", name, version)
+	downloadURL, err := findAssetURL(rel)
+	if err != nil {
+		return err
 	}
 
 	log.Info("downloading %s...", version)
@@ -169,6 +155,16 @@ func showChangelog(fromCommit, toCommit string) {
 	if start > 0 {
 		fmt.Printf("  ... and %d more\n", start)
 	}
+}
+
+func findAssetURL(rel release) (string, error) {
+	name := AssetName()
+	for _, a := range rel.Assets {
+		if a.Name == name {
+			return a.BrowserDownloadURL, nil
+		}
+	}
+	return "", fmt.Errorf("no asset %q in release %s", name, rel.TagName)
 }
 
 func fetchRelease(channel string) (release, error) {

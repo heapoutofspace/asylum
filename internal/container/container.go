@@ -266,9 +266,7 @@ func ExecArgs(opts ExecOpts) []string {
 	args = append(args, opts.ContainerName)
 
 	switch opts.Mode {
-	case ModeShell:
-		args = append(args, "/bin/zsh")
-	case ModeAdminShell:
+	case ModeShell, ModeAdminShell:
 		args = append(args, "/bin/zsh")
 	case ModeCommand:
 		args = append(args, opts.ExtraArgs...)
