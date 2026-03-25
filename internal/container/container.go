@@ -300,7 +300,12 @@ func EnsureAgentConfig(home string, a agent.Agent) (bool, error) {
 		return false, nil
 	}
 
-	nativeDir := config.ExpandTilde(a.NativeConfigDir(), home)
+	nativeDir := a.NativeConfigDir()
+	if nativeDir == "" {
+		log.Info("creating %s config directory", a.Name())
+		return true, os.MkdirAll(agentDir, 0755)
+	}
+	nativeDir = config.ExpandTilde(nativeDir, home)
 	if dirExists(nativeDir) {
 		log.Info("seeding %s config from %s", a.Name(), nativeDir)
 		return true, copyDir(nativeDir, agentDir)
