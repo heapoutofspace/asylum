@@ -7,10 +7,10 @@ func init() {
 		Tier:        TierOptIn,
 		Tools:       []string{"cx"},
 		ConfigSnippet: `  # cx:                # Semantic code navigation
-    # packages:        # tree-sitter language grammars
-    #   - python
-    #   - typescript
-    #   - go
+  #   packages:        # tree-sitter language grammars
+  #     - python
+  #     - typescript
+  #     - go
 `,
 		ConfigNodes:   configNodes("cx", "Semantic code navigation", nil),
 		ConfigComment: "packages:        # tree-sitter language grammars\n    #   - python\n    #   - typescript\n    #   - go",

@@ -313,7 +313,7 @@ func AssembleConfigSnippets() string {
 	var b strings.Builder
 	b.WriteString(active.String())
 	if commented.Len() > 0 {
-		b.WriteString("\n  # Default-on kits (active even without config; disable with \"disabled: true\")\n")
+		b.WriteString("\n")
 		b.WriteString(commented.String())
 	}
 	return b.String()

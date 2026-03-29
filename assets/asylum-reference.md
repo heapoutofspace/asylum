@@ -62,10 +62,9 @@ kits:
     shadow-node-modules: true # Shadow node_modules with Docker volumes
     # packages: [turbo]      # Extra npm packages installed globally
 
-  # Default-on kits (active unless explicitly disabled)
-  # github:                  # GitHub CLI (gh)
-  # openspec:                # OpenSpec CLI
-  # shell:                   # oh-my-zsh, tmux, direnv
+  # github:                  # GitHub CLI (gh) (on by default)
+  # openspec:                # OpenSpec CLI (on by default)
+  # shell:                   # Custom Dockerfile/entrypoint steps (on by default)
 
   # Disable a default-on kit:
   # github:

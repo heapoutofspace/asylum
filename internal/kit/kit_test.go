@@ -226,10 +226,7 @@ func TestAssembleConfigSnippets(t *testing.T) {
 	if !strings.Contains(got, "  alpha:\n") {
 		t.Error("expected active snippet for alpha")
 	}
-	// Commented snippets come after the default-on header
-	if !strings.Contains(got, "# Default-on kits") {
-		t.Error("expected default-on header")
-	}
+	// Commented snippets come after active ones
 	if !strings.Contains(got, "  # commented:\n") {
 		t.Error("expected commented snippet")
 	}
