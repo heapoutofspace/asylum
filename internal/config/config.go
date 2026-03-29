@@ -459,6 +459,9 @@ func ParseVolume(raw string, homeDir string) (Volume, error) {
 		return Volume{Host: host, Container: host}, nil
 	case 2:
 		if mountOptions[parts[1]] {
+			if parts[0] == "" {
+				return Volume{}, fmt.Errorf("empty path in volume %q", raw)
+			}
 			host := ExpandTilde(parts[0], homeDir)
 			return Volume{Host: host, Container: host, Options: parts[1]}, nil
 		}

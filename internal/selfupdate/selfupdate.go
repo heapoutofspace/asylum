@@ -44,27 +44,27 @@ func ResolveChannel(devFlag bool, configChannel string) string {
 	return "stable"
 }
 
-// resolveUpdate resolves the binary path and fetches the download URL for the given channel.
-func resolveUpdate(execPath, channel string) (binPath, downloadURL string, rel release, err error) {
+// resolveUpdate resolves the binary path and fetches the release metadata for the given channel.
+func resolveUpdate(execPath, channel string) (binPath string, rel release, err error) {
 	binPath, err = filepath.EvalSymlinks(execPath)
 	if err != nil {
-		return "", "", release{}, fmt.Errorf("resolve binary path: %w", err)
+		return "", release{}, fmt.Errorf("resolve binary path: %w", err)
 	}
 	rel, err = fetchRelease(channel)
 	if err != nil {
-		return "", "", release{}, err
+		return "", release{}, err
 	}
-	downloadURL, err = findAssetURL(rel)
-	if err != nil {
-		return "", "", release{}, err
-	}
-	return binPath, downloadURL, rel, nil
+	return binPath, rel, nil
 }
 
 // SafeRun is a stripped-down emergency updater. Always pulls the dev release,
 // no version checks, no changelog — just download and replace.
 func SafeRun(execPath string) error {
-	binPath, downloadURL, _, err := resolveUpdate(execPath, "dev")
+	binPath, rel, err := resolveUpdate(execPath, "dev")
+	if err != nil {
+		return err
+	}
+	downloadURL, err := findAssetURL(rel)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func Run(currentVersion, currentCommit, channel, targetVersion, execPath string)
 		fetchChannel = NormalizeVersion(targetVersion)
 	}
 
-	binPath, downloadURL, rel, err := resolveUpdate(execPath, fetchChannel)
+	binPath, rel, err := resolveUpdate(execPath, fetchChannel)
 	if err != nil {
 		return err
 	}
@@ -112,6 +112,11 @@ func Run(currentVersion, currentCommit, channel, targetVersion, execPath string)
 			log.Success("already up to date (%s)", version)
 		}
 		return nil
+	}
+
+	downloadURL, err := findAssetURL(rel)
+	if err != nil {
+		return err
 	}
 
 	log.Info("downloading %s...", version)

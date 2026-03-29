@@ -125,20 +125,20 @@ func Resolve(names []string, disabled map[string]bool) ([]*Kit, error) {
 		}
 	}
 
-	// Auto-activate dependencies
+	// Auto-activate dependencies (iterate by index to pick up transitive deps)
 	activeSet := map[string]bool{}
 	for _, k := range result {
 		top, _, _ := strings.Cut(k.Name, "/")
 		activeSet[top] = true
 	}
-	for _, k := range result {
-		for _, dep := range k.Deps {
+	for i := 0; i < len(result); i++ {
+		for _, dep := range result[i].Deps {
 			if activeSet[dep] {
 				continue
 			}
 			depKit, ok := registry[dep]
 			if !ok || disabled[dep] {
-				log.Warn("kit %q requires %q which is not available", k.Name, dep)
+				log.Warn("kit %q requires %q which is not available", result[i].Name, dep)
 				continue
 			}
 			add(depKit)

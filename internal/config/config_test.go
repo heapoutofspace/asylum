@@ -335,6 +335,7 @@ func TestParseVolume(t *testing.T) {
 		{"invalid option in third part", "/host:/container:bogus"},
 		{"invalid option in fourth part", "/host:/container:ro:bogus"},
 		{"empty host in two-part", ":/container"},
+		{"empty host with mount option", ":ro"},
 		{"empty container in two-part", "/host:"},
 		{"empty host in multi-part", ":/container:ro"},
 		{"empty container in multi-part", "/host::ro"},
