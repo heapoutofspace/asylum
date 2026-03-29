@@ -2,88 +2,50 @@
 
 ## Unreleased
 
+## 0.6.0 — 2026-03-29
+
+This release introduces the kit system — modular, composable tooling profiles that replace hardcoded language toolchains with a flexible, extensible architecture. Each kit owns its Dockerfile snippets, entrypoint setup, config defaults, credentials, and agent rules. Also adds Claude config isolation, a documentation site, and aligns the container user with the host identity.
+
 ### Added
-- GitHub kit credential support: `credentials: auto` extracts `gh` auth token from host (including system keyrings) for seamless authentication
-- Credential system supports direct host path mounting via `HostPath` (no content generation needed)
-- Rocket.Chat release notification via webhook after successful release and docs deployment
-- Kit credential system: kits can define credential providers that filter host credentials by project needs. Maven support included — auto-discovers server IDs from `pom.xml` and generates a scoped `settings.xml` with only matching entries from `~/.m2/settings.xml`
-- Onboarding wizard: config isolation and credential prompts are now grouped into a single multi-step TUI wizard with a tab bar showing progress — fires for any unconfigured option, including v1 migrations. Declining credentials persists the choice (`credentials: false`) so the prompt doesn't reappear
-- Claude config isolation: choose between `shared` (host config), `isolated` (current default), or `project` (per-project) via onboarding wizard or `agents.claude.config` in config. Session detection (`--continue`) works correctly across all isolation modes
-- TUI prompt framework using Bubble Tea for interactive single-choice, multi-choice, and wizard prompts
-- `cleanup --all` for global cleanup (all images, volumes, cached data) with a confirmation prompt showing exactly what will be deleted
-- Documentation site built with MkDocs Material, deployed to GitHub Pages via `.github/workflows/docs.yml`
-- Versioned docs with mike: version selector dropdown, `dev` channel updated on push to main, stable versions deployed on release tags with `latest` alias
-- Structured docs pages for commands, configuration, kits, concepts, and development
-- New `ast-grep` kit: installs ast-grep (`sg`) via npm for AST-based code search, linting, and rewriting
-- New `browser` kit: installs Chromium via Playwright for browser automation, with persistent cache volume
-- New `cx` kit: installs cx for semantic code navigation (file overviews, symbol search, definitions, references) with configurable language grammars via `packages`
-- New `ports` kit (default-on): automatically allocates and forwards a range of high ports per project, with global tracking to prevent collisions
-- Kit config sync: new kits are detected on startup and inserted into existing `config.yaml` via `yaml.Node` tree manipulation (preserving comments and user edits)
-- Kit state tracking: `~/.asylum/state.json` tracks known kits; new kits trigger activation prompts in interactive mode
-- Sandbox rules file injected into containers via `.claude/rules/asylum-sandbox.md`, giving Claude awareness of available tools, kits, sandbox constraints, and Asylum version
-- Detailed Asylum reference doc mounted at `.claude/asylum-reference.md` for on-demand troubleshooting and config guidance
-- Host IP accessible inside containers via `host.docker.internal` (`--add-host`)
-- Kit dependencies: kits can declare `Deps` on other kits (auto-activated at resolve time)
-- Default-on kits: `shell`, `node`, and `title` are active unless explicitly disabled with `disabled: true`
-- New `github` kit: GitHub CLI (gh) extracted from core Dockerfile
-- New `openspec` kit: OpenSpec CLI extracted from node kit, depends on node
-- New `shell` kit: oh-my-zsh, tmux config, direnv hooks, terminal size handling extracted from Dockerfile tail
-- Kit disabling: `disabled: true` in KitConfig excludes a kit; project config can disable globally-configured kits
-- Maven moved to `java/maven` sub-kit (no longer in core apt-get)
-- Python build deps (`python3-dev`, `libssl-dev`, etc.) moved to `python` kit
-- `self-update` accepts an optional version argument to install a specific release (e.g., `asylum self-update 0.4.0`)
-- `selfupdate` accepted as alias for `self-update`
+- Kit system: modular tooling profiles (java, python, node, docker, github, shell, etc.) that own Dockerfile snippets, entrypoint setup, cache dirs, config defaults, and agent rules — replaces hardcoded language toolchains
+- Config format v2: per-kit options replace top-level `features`, `packages`, `versions` fields; v1 configs migrated automatically
+- Hierarchical sub-kits: `java/maven`, `java/gradle`, `node/pnpm`, `node/yarn` with kit dependencies and activation tiers (always-on/default/opt-in)
+- New kits: `ast-grep` (AST-based code search), `browser` (Chromium via Playwright), `cx` (semantic code navigation), `ports` (automatic per-project port allocation)
+- Kit credential system: auto-discovers and filters host credentials by project needs — Maven discovers server IDs from `pom.xml`; GitHub extracts `gh` auth token from host keyrings
+- Kit config sync: new kits detected on startup and offered for activation, preserving comments and user edits in config
+- Configurable agent CLI installation via `agents` config map and `--agents` flag; Opencode agent support
+- Claude config isolation: `shared` (host config), `isolated`, or `project` (per-project) via onboarding wizard or `agents.claude.config`; session detection (`--continue`) works across all modes
+- Onboarding wizard: config isolation and credential prompts grouped into a multi-step TUI wizard; declining persists the choice to prevent repeat prompts
+- Documentation site with MkDocs Material, versioned via mike with `dev` and `latest` channels
+- Sandbox rules and reference doc injected into containers, giving agents awareness of available tools and environment
+- `cleanup --all` for global cleanup (all images, volumes, cached data) with confirmation prompt
+- Host IP accessible inside containers via `host.docker.internal`
+- `self-update` accepts optional version argument (e.g., `asylum self-update 0.4.0`); `selfupdate` accepted as alias
 - E2e test suite with echo agent for full binary lifecycle testing
-- `internal/term` package consolidating shared `ShellQuote` and `IsTerminal` helpers
 
 ### Changed
-- **BREAKING**: Config `kits` and `agents` maps now deep-merge across layers instead of replacing entirely — project `.asylum` kits supplement global kits instead of overriding them; use `disabled: true` to suppress a global kit per-project
-- Container user now matches host user (username, UID, GID, home directory) instead of hardcoded `claude:1000:/home/claude` — fixes absolute symlink resolution and removes path mismatches
-- Container names now include the project name: `asylum-<hash>-<project>` (e.g., `asylum-7a3f2b1c9e04-myapp`). Existing project data is migrated automatically on first run.
-- `cleanup` now scopes to the current project by default (removes container, volumes, and project data for the current directory only)
-- `cleanup` and `version` are now proper subcommands (`asylum cleanup`, `asylum version`); `--cleanup` and `--version` flags kept as aliases
-- Kit activation tiers: `TierAlwaysOn` (shell, node, title), `TierDefault` (docker, java, etc.), `TierOptIn` (apt) replace the boolean `DefaultOn`
-- Opencode installed via curl instead of `go install`
-- Agent env vars emitted before hardcoded container env vars (Docker last-wins ensures correct precedence)
-- Cleanup prompt skipped in non-interactive mode with a warning
-- Onboarding prompt skipped in non-interactive mode
-- Cleanup now preserves project directories with active sessions
-- `docker exec` only uses `-t` flag when stdin is a TTY (fixes non-interactive environments)
+- Container user now matches host user (username, UID, GID, home directory) instead of hardcoded `claude:1000:/home/claude`
+- Container names now include project name: `asylum-<hash>-<project>` with automatic data migration
+- `cleanup` scopes to current project by default; `cleanup` and `version` promoted from flags to subcommands (flag aliases kept)
+- Cleanup and onboarding prompts skipped in non-interactive mode; cleanup preserves active sessions
+- `docker exec` only uses `-t` flag when stdin is a TTY
 
 ### Fixed
-- Onboarding wizard now shows already-configured credentials as pre-selected when prompting for new credential kits
-- Config file edits (isolation, credentials) no longer strip blank lines and comments via yaml round-tripping
-- Global config migration now produces full documented default config with all kits
-- Docker kit no longer duplicates GPG key setup already done by core Dockerfile
-- Crash with "unknown kit apt" when config contains apt packages or tab-title settings
 - Broken terminal colors in macOS Terminal.app caused by hardcoded `COLORTERM=truecolor`; now inherited from host
-- `.tool-versions` Java version now correctly overrides global config but not project-local config
-- `ParseVolume` rejects empty host/container paths in all volume spec formats
-- `ParseVolume` validates mount options in 3+ part volume specs
-- Race condition in session counter file locking (read through locked fd)
-- Session counter underflow when increment fails no longer triggers premature container removal
-- Cyclic symlinks in `copyDir` no longer cause infinite recursion
-- Symlinks to regular files in `copyDir` now resolve to target contents instead of recreating potentially dangling links
+- `.tool-versions` Java version correctly overrides global config but not project-local config
+- Config file edits no longer strip blank lines and comments via yaml round-tripping
+- `ParseVolume` rejects empty host/container paths and validates mount options
+- Race condition in session counter file locking; underflow no longer triggers premature container removal
+- Cyclic symlinks and symlinks to regular files in `copyDir` handled correctly
 - Signal forwarding goroutine no longer leaks after docker process exits
-- Shell metacharacters in onboarding command arguments are now properly quoted
-- Env var values containing newlines are rejected instead of producing broken Docker flags
+- Shell metacharacters in onboarding commands properly quoted
+- Env var values with newlines rejected; run commands with newlines/empty values rejected during Dockerfile generation
+- Self-update HTTP requests have 60s timeout and enforce Content-Length/512MB size limit
 - `WriteDefaults` uses O_EXCL to prevent TOCTOU race on first-run config creation
-- Self-update HTTP requests have a 60-second timeout (previously no timeout)
-- Self-update enforces Content-Length and 512MB size limit on downloads
-- Run commands with newlines or empty values are rejected during Dockerfile generation
-- Agent error message now lists all registered agents dynamically
 
 ## 0.5.0 — 2026-03-24
 
 ### Added
-- Profile system: language toolchains (java, python, node) are now self-contained profiles that own Dockerfile snippets, entrypoint setup, cache dirs, config defaults, and onboarding tasks
-- `profiles` config option (YAML and `--profiles` CLI flag) to select which profiles are active; `nil` = all (backwards compatible), `[]` = none
-- Hierarchical sub-profiles: `java/maven`, `java/gradle`, `python/uv`, `node/npm`, `node/pnpm`, `node/yarn`
-- Dockerfile and entrypoint split into core + profile snippets + tail, assembled at build time
-- Dynamic welcome banner showing versions only for active profiles and installed agents
-- Configurable agent CLI installation via `agents` config and `--agents` CLI flag (default: claude only)
-- Opencode agent support (`agents: [opencode]`)
-- Docker-in-Docker as optional `docker` kit (active by default, remove to disable for smaller images and non-privileged containers)
 - First-run onboarding: prompts to mount package manager credentials (Maven) on initial setup
 - Project onboarding framework: scans for setup tasks, prompts once, executes via `docker exec` with proper error handling
 - Node.js dependency auto-install as first onboarding task (disable with `onboarding: { npm: false }`)
@@ -92,8 +54,6 @@
 - `onboarding` config section for per-task control; `features: { onboarding: false }` for global disable
 
 ### Changed
-- **BREAKING**: Config format v2 — profiles renamed to kits, per-kit options replace top-level fields (`features`, `packages`, `versions`, `onboarding`). Existing configs are migrated automatically.
-- Agents config field is now a map (`agents: {claude:}`) instead of a list
 - Cache directories (npm, pip, maven, gradle) now use named Docker volumes instead of bind mounts for better IO on macOS
 
 ### Fixed
