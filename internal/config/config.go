@@ -89,9 +89,14 @@ func (c Config) AgentActive(name string) bool {
 }
 
 // KitNames returns sorted kit names from the map, or nil if Kits is nil.
+// An empty but non-nil Kits map returns an empty (non-nil) slice, which
+// kit.Resolve treats as "no kits" — distinct from nil which means "all kits".
 func (c Config) KitNames() []string {
 	if c.Kits == nil {
 		return nil
+	}
+	if len(c.Kits) == 0 {
+		return []string{}
 	}
 	return slices.Sorted(maps.Keys(c.Kits))
 }
