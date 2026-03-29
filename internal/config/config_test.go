@@ -185,6 +185,27 @@ func TestPortCount(t *testing.T) {
 	}
 }
 
+func TestExpandTilde(t *testing.T) {
+	home := "/Users/simon"
+	tests := []struct {
+		path, want string
+	}{
+		{"~/data", "/Users/simon/data"},
+		{"~", "/Users/simon"},
+		{"/absolute/path", "/absolute/path"},
+		{"/home/claude/.m2", "/Users/simon/.m2"},
+		{"/home/claude/.cache/pip", "/Users/simon/.cache/pip"},
+		{"/home/claude", "/Users/simon"},
+		{"relative", "relative"},
+	}
+	for _, tt := range tests {
+		got := ExpandTilde(tt.path, home)
+		if got != tt.want {
+			t.Errorf("ExpandTilde(%q, %q) = %q, want %q", tt.path, home, got, tt.want)
+		}
+	}
+}
+
 func TestParseVolume(t *testing.T) {
 	home := "/home/user"
 	tests := []struct {

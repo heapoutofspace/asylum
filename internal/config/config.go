@@ -348,12 +348,26 @@ var mountOptions = map[string]bool{
 	"nocopy": true, "consistent": true, "cached": true, "delegated": true,
 }
 
-// ExpandTilde replaces a leading ~/ with homeDir. A bare "~" returns homeDir.
+// legacyHome is the old hardcoded container home directory.
+// Paths starting with this prefix are transparently rewritten
+// to the current home directory so that existing configs and
+// user-specified volume mounts keep working after the switch
+// to host-aligned home directories.
+const legacyHome = "/home/claude/"
+
+// ExpandTilde replaces a leading ~/ or the legacy /home/claude/ prefix
+// with homeDir. A bare "~" returns homeDir.
 func ExpandTilde(path, homeDir string) string {
 	if strings.HasPrefix(path, "~/") {
 		return filepath.Join(homeDir, path[2:])
 	}
 	if path == "~" {
+		return homeDir
+	}
+	if strings.HasPrefix(path, legacyHome) {
+		return filepath.Join(homeDir, path[len(legacyHome):])
+	}
+	if path == "/home/claude" {
 		return homeDir
 	}
 	return path
