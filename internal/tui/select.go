@@ -78,7 +78,7 @@ var (
 	titleStyle    = lipgloss.NewStyle().Bold(true).MarginBottom(1)
 	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
 	labelStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
-	descStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("245")).MarginLeft(4)
+	descStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("250")).MarginLeft(4)
 	hintStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("243")).Italic(true).MarginTop(1)
 )
 

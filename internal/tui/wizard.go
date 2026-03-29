@@ -19,11 +19,12 @@ const (
 
 // WizardStep defines one step in the wizard flow.
 type WizardStep struct {
-	Title      string
-	Kind       StepKind
-	Options    []Option
-	DefaultIdx int   // default selection for StepSelect
-	DefaultSel []int // default selections for StepMultiSelect
+	Title       string
+	Description string // explanatory text shown below the title
+	Kind        StepKind
+	Options     []Option
+	DefaultIdx  int   // default selection for StepSelect
+	DefaultSel  []int // default selections for StepMultiSelect
 }
 
 // StepResult holds the outcome of a single wizard step.
@@ -64,13 +65,17 @@ func Wizard(steps []WizardStep) ([]StepResult, error) {
 	}
 
 	final := result.(wizardModel)
+	if final.cancelled {
+		return final.results, ErrCancelled
+	}
 	return final.results, nil
 }
 
 type wizardModel struct {
-	steps   []WizardStep
-	results []StepResult
-	current int
+	steps     []WizardStep
+	results   []StepResult
+	current   int
+	cancelled bool
 
 	// Current step's sub-model state
 	selModel   selectModel
@@ -81,7 +86,6 @@ func (m *wizardModel) initStep(idx int) {
 	s := m.steps[idx]
 	if s.Kind == StepSelect {
 		m.selModel = selectModel{
-			title:   s.Title,
 			options: s.Options,
 			cursor:  s.DefaultIdx,
 		}
@@ -91,7 +95,6 @@ func (m *wizardModel) initStep(idx int) {
 			selected[i] = true
 		}
 		m.multiModel = multiModel{
-			title:    s.Title,
 			options:  s.Options,
 			selected: selected,
 		}
@@ -104,12 +107,11 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "esc", "ctrl+c", "q":
-			// Cancel: mark current and remaining steps as not completed
+		case "esc", "ctrl+c":
+			m.cancelled = true
 			return m, tea.Quit
 
 		case "enter":
-			// Collect result from current step
 			s := m.steps[m.current]
 			m.results[m.current].Completed = true
 			if s.Kind == StepSelect {
@@ -124,7 +126,6 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.results[m.current].MultiIdx = indices
 			}
 
-			// Advance or finish
 			if m.current+1 >= len(m.steps) {
 				return m, tea.Quit
 			}
@@ -133,7 +134,6 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		default:
-			// Delegate to current step's model
 			s := m.steps[m.current]
 			if s.Kind == StepSelect {
 				switch msg.String() {
@@ -166,33 +166,48 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 var (
-	tabActiveStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("10"))
-	tabDoneStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
-	tabFutureStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	tabSepStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	wizardTabStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Padding(0, 1)
+	wizardTabActive   = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Bold(true).Background(lipgloss.Color("63")).Padding(0, 1)
+	wizardTabDone     = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("237")).Padding(0, 1)
+	wizardSepStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	wizardDescStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).MarginTop(2).MarginBottom(2)
 )
 
 func (m wizardModel) View() string {
 	var b strings.Builder
 
-	// Tab bar
-	for i, s := range m.steps {
-		if i > 0 {
-			b.WriteString(tabSepStyle.Render("  ▸  "))
+	// Step indicator (only shown when multiple steps)
+	if len(m.steps) > 1 {
+		for i, s := range m.steps {
+			if i > 0 {
+				b.WriteString(wizardSepStyle.Render(" → "))
+			}
+			if m.results[i].Completed {
+				b.WriteString(wizardTabDone.Render(s.Title + " ✓"))
+			} else if i == m.current {
+				b.WriteString(wizardTabActive.Render(s.Title))
+			} else {
+				b.WriteString(wizardTabStyle.Render(s.Title))
+			}
 		}
-		label := fmt.Sprintf("%d. %s", i+1, s.Title)
-		if m.results[i].Completed {
-			b.WriteString(tabDoneStyle.Render(label + " ✓"))
-		} else if i == m.current {
-			b.WriteString(tabActiveStyle.Render(label))
-		} else {
-			b.WriteString(tabFutureStyle.Render(label))
-		}
+		b.WriteByte('\n')
 	}
-	b.WriteByte('\n')
 
-	// Current step content
 	s := m.steps[m.current]
+
+	// Step title (only when single step)
+	if len(m.steps) <= 1 {
+		b.WriteString(titleStyle.Render(s.Title))
+		b.WriteByte('\n')
+	}
+
+	// Step description
+	if s.Description != "" {
+		b.WriteString(wizardDescStyle.Render(s.Description))
+		b.WriteByte('\n')
+	}
+
+	// Current step options
 	if s.Kind == StepSelect {
 		b.WriteString(m.renderSelect())
 	} else {
@@ -204,9 +219,6 @@ func (m wizardModel) View() string {
 
 func (m wizardModel) renderSelect() string {
 	var b strings.Builder
-	b.WriteString(titleStyle.Render(m.selModel.title))
-	b.WriteByte('\n')
-
 	for i, opt := range m.selModel.options {
 		if i > 0 {
 			b.WriteByte('\n')
@@ -229,9 +241,6 @@ func (m wizardModel) renderSelect() string {
 
 func (m wizardModel) renderMulti() string {
 	var b strings.Builder
-	b.WriteString(titleStyle.Render(m.multiModel.title))
-	b.WriteByte('\n')
-
 	for i, opt := range m.multiModel.options {
 		if i > 0 {
 			b.WriteByte('\n')

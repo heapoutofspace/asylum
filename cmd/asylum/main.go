@@ -912,8 +912,9 @@ func runOnboarding(cfg *config.Config, a agent.Agent, allKits []*kit.Kit, home s
 	// Step: config isolation (if not set for Claude)
 	if a.Name() == "claude" && cfg.AgentIsolation(a.Name()) == "" {
 		steps = append(steps, tui.WizardStep{
-			Title: "Config Isolation",
-			Kind:  tui.StepSelect,
+			Title:       "Config Isolation",
+			Description: "How should Claude's config (~/.claude) be managed inside the sandbox?",
+			Kind:        tui.StepSelect,
 			Options: []tui.Option{
 				{Label: "Shared with host", Description: "Use your host ~/.claude directly. Changes sync both ways."},
 				{Label: "Isolated (recommended)", Description: "Separate from host, shared across projects. This is the current default."},
@@ -951,20 +952,22 @@ func runOnboarding(cfg *config.Config, a agent.Agent, allKits []*kit.Kit, home s
 	}
 	if len(credKits) > 0 {
 		options := make([]tui.Option, len(credKits))
-		defaults := make([]int, len(credKits))
 		for i, k := range credKits {
 			label := k.CredentialLabel
 			if label == "" {
 				label = k.Name
 			}
-			options[i] = tui.Option{Label: label, Description: "Filters credentials by project needs"}
-			defaults[i] = i
+			desc := ""
+			if k.Name == "java/maven" {
+				desc = "Exposes matching server entries from ~/.m2/settings.xml"
+			}
+			options[i] = tui.Option{Label: label, Description: desc}
 		}
 		steps = append(steps, tui.WizardStep{
-			Title:      "Credentials",
-			Kind:       tui.StepMultiSelect,
-			Options:    options,
-			DefaultSel: defaults,
+			Title:       "Credentials",
+			Description: "Allow the sandbox to access host credentials for private registries and repositories (read-only, scoped to what the project needs).",
+			Kind:    tui.StepMultiSelect,
+			Options: options,
 		})
 		appliers = append(appliers, func(result tui.StepResult) {
 			cfgPath := filepath.Join(home, ".asylum", "config.yaml")
