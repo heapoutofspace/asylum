@@ -5,7 +5,7 @@ The config system SHALL load config from `~/.asylum/config.yaml`, `$project/.asy
 
 #### Scenario: All three files present
 - **WHEN** all three config files exist with different values
-- **THEN** values are merged according to merge semantics (scalars last-wins, lists concat, maps merge per-key)
+- **THEN** values are merged according to merge semantics (scalars last-wins, lists concat, maps merge per-key with field-level merge within KitConfig)
 
 #### Scenario: Missing files are skipped
 - **WHEN** one or more config files do not exist
@@ -14,6 +14,10 @@ The config system SHALL load config from `~/.asylum/config.yaml`, `$project/.asy
 #### Scenario: Invalid YAML
 - **WHEN** a config file contains invalid YAML
 - **THEN** an error is returned
+
+#### Scenario: Project kits supplement global kits
+- **WHEN** global config has `kits: {node: {}, openspec: {}}` and project config has `kits: {shell: {}}`
+- **THEN** the merged result has all three kits active
 
 ### Requirement: Scalar merge semantics
 Scalar config values (agent, release-channel) SHALL use last-value-wins when merging layers.

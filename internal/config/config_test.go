@@ -57,28 +57,56 @@ func TestMerge(t *testing.T) {
 			},
 		},
 		{
-			name: "kits last-wins",
-			base: Config{Kits: map[string]*KitConfig{"java": nil}},
+			name: "kits per-key merge preserves base",
+			base: Config{Kits: map[string]*KitConfig{"java": nil, "openspec": nil}},
 			over: Config{Kits: map[string]*KitConfig{"python": nil}},
 			check: func(t *testing.T, c Config) {
-				if _, ok := c.Kits["java"]; ok {
-					t.Error("java should not be present (last-wins)")
-				}
-				if _, ok := c.Kits["python"]; !ok {
-					t.Error("python should be present")
+				for _, name := range []string{"java", "openspec", "python"} {
+					if !c.KitActive(name) {
+						t.Errorf("%s should be active", name)
+					}
 				}
 			},
 		},
 		{
-			name: "agents last-wins",
+			name: "kits overlay overrides single kit options",
+			base: Config{Kits: map[string]*KitConfig{
+				"java": {DefaultVersion: "17"},
+				"node": nil,
+			}},
+			over: Config{Kits: map[string]*KitConfig{
+				"java": {DefaultVersion: "21"},
+			}},
+			check: func(t *testing.T, c Config) {
+				if c.JavaVersion() != "21" {
+					t.Errorf("java version = %q, want 21", c.JavaVersion())
+				}
+				if !c.KitActive("node") {
+					t.Error("node should still be active")
+				}
+			},
+		},
+		{
+			name: "kits nil overlay KitConfig preserves base",
+			base: Config{Kits: map[string]*KitConfig{"node": {Packages: []string{"tsx"}}}},
+			over: Config{Kits: map[string]*KitConfig{"node": nil}},
+			check: func(t *testing.T, c Config) {
+				kc := c.KitOption("node")
+				if kc == nil || len(kc.Packages) != 1 || kc.Packages[0] != "tsx" {
+					t.Errorf("node packages = %v, want [tsx]", kc)
+				}
+			},
+		},
+		{
+			name: "agents per-key merge preserves base",
 			base: Config{Agents: map[string]*AgentConfig{"claude": nil}},
 			over: Config{Agents: map[string]*AgentConfig{"gemini": nil}},
 			check: func(t *testing.T, c Config) {
-				if _, ok := c.Agents["claude"]; ok {
-					t.Error("claude should not be present (last-wins)")
+				if !c.AgentActive("claude") {
+					t.Error("claude should still be active")
 				}
-				if _, ok := c.Agents["gemini"]; !ok {
-					t.Error("gemini should be present")
+				if !c.AgentActive("gemini") {
+					t.Error("gemini should be active")
 				}
 			},
 		},
@@ -410,6 +438,138 @@ func TestToolVersionsJava(t *testing.T) {
 			t.Errorf("java = %q, want %q (.tool-versions should override global config)", cfg.JavaVersion(), "21.0.2")
 		}
 	})
+}
+
+func TestMergeKitConfig(t *testing.T) {
+	boolPtr := func(v bool) *bool { return &v }
+
+	tests := []struct {
+		name  string
+		base  *KitConfig
+		over  *KitConfig
+		check func(t *testing.T, kc *KitConfig)
+	}{
+		{
+			name: "nil base returns overlay",
+			base: nil,
+			over: &KitConfig{DefaultVersion: "21"},
+			check: func(t *testing.T, kc *KitConfig) {
+				if kc.DefaultVersion != "21" {
+					t.Errorf("version = %q, want 21", kc.DefaultVersion)
+				}
+			},
+		},
+		{
+			name: "nil overlay returns base",
+			base: &KitConfig{DefaultVersion: "17"},
+			over: nil,
+			check: func(t *testing.T, kc *KitConfig) {
+				if kc.DefaultVersion != "17" {
+					t.Errorf("version = %q, want 17", kc.DefaultVersion)
+				}
+			},
+		},
+		{
+			name: "both nil returns nil",
+			base: nil,
+			over: nil,
+			check: func(t *testing.T, kc *KitConfig) {
+				if kc != nil {
+					t.Error("expected nil")
+				}
+			},
+		},
+		{
+			name: "scalar override",
+			base: &KitConfig{DefaultVersion: "17", TabTitle: "base"},
+			over: &KitConfig{DefaultVersion: "21"},
+			check: func(t *testing.T, kc *KitConfig) {
+				if kc.DefaultVersion != "21" {
+					t.Errorf("version = %q, want 21", kc.DefaultVersion)
+				}
+				if kc.TabTitle != "base" {
+					t.Errorf("tab title = %q, want base", kc.TabTitle)
+				}
+			},
+		},
+		{
+			name: "disabled flag override",
+			base: &KitConfig{},
+			over: &KitConfig{Disabled: boolPtr(true)},
+			check: func(t *testing.T, kc *KitConfig) {
+				if kc.Disabled == nil || !*kc.Disabled {
+					t.Error("disabled should be true")
+				}
+			},
+		},
+		{
+			name: "packages concat",
+			base: &KitConfig{Packages: []string{"tsx"}},
+			over: &KitConfig{Packages: []string{"vitest"}},
+			check: func(t *testing.T, kc *KitConfig) {
+				if len(kc.Packages) != 2 || kc.Packages[0] != "tsx" || kc.Packages[1] != "vitest" {
+					t.Errorf("packages = %v, want [tsx vitest]", kc.Packages)
+				}
+			},
+		},
+		{
+			name: "build concat",
+			base: &KitConfig{Build: []string{"apt-get install foo"}},
+			over: &KitConfig{Build: []string{"curl bar"}},
+			check: func(t *testing.T, kc *KitConfig) {
+				if len(kc.Build) != 2 || kc.Build[0] != "apt-get install foo" || kc.Build[1] != "curl bar" {
+					t.Errorf("build = %v, want [apt-get install foo, curl bar]", kc.Build)
+				}
+			},
+		},
+		{
+			name: "versions replace",
+			base: &KitConfig{Versions: []string{"17", "21"}},
+			over: &KitConfig{Versions: []string{"25"}},
+			check: func(t *testing.T, kc *KitConfig) {
+				if len(kc.Versions) != 1 || kc.Versions[0] != "25" {
+					t.Errorf("versions = %v, want [25]", kc.Versions)
+				}
+			},
+		},
+		{
+			name: "nil overlay versions preserves base",
+			base: &KitConfig{Versions: []string{"17", "21"}},
+			over: &KitConfig{},
+			check: func(t *testing.T, kc *KitConfig) {
+				if len(kc.Versions) != 2 {
+					t.Errorf("versions = %v, want [17 21]", kc.Versions)
+				}
+			},
+		},
+		{
+			name: "count nonzero replaces",
+			base: &KitConfig{Count: 5},
+			over: &KitConfig{Count: 10},
+			check: func(t *testing.T, kc *KitConfig) {
+				if kc.Count != 10 {
+					t.Errorf("count = %d, want 10", kc.Count)
+				}
+			},
+		},
+		{
+			name: "count zero preserves base",
+			base: &KitConfig{Count: 5},
+			over: &KitConfig{},
+			check: func(t *testing.T, kc *KitConfig) {
+				if kc.Count != 5 {
+					t.Errorf("count = %d, want 5", kc.Count)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := mergeKitConfig(tt.base, tt.over)
+			tt.check(t, result)
+		})
+	}
 }
 
 func TestLoadSkipsDirectoryAsConfig(t *testing.T) {

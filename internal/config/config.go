@@ -282,13 +282,25 @@ func Merge(base, overlay Config) Config {
 		result.ReleaseChannel = overlay.ReleaseChannel
 	}
 
-	// Kits: last-wins (overlay replaces entirely)
+	// Kits: per-key deep merge
 	if overlay.Kits != nil {
-		result.Kits = overlay.Kits
+		if result.Kits == nil {
+			result.Kits = make(map[string]*KitConfig, len(overlay.Kits))
+		}
+		for name, overKC := range overlay.Kits {
+			result.Kits[name] = mergeKitConfig(result.Kits[name], overKC)
+		}
 	}
-	// Agents: last-wins
+	// Agents: per-key merge
 	if overlay.Agents != nil {
-		result.Agents = overlay.Agents
+		if result.Agents == nil {
+			result.Agents = make(map[string]*AgentConfig, len(overlay.Agents))
+		}
+		for name, ac := range overlay.Agents {
+			if _, ok := result.Agents[name]; !ok {
+				result.Agents[name] = ac
+			}
+		}
 	}
 
 	result.Ports = slices.Concat(base.Ports, overlay.Ports)
@@ -302,6 +314,47 @@ func Merge(base, overlay Config) Config {
 	}
 
 	return result
+}
+
+// mergeKitConfig deep-merges two KitConfig values. Scalars use last-wins,
+// Packages and Build concatenate, Versions replaces.
+func mergeKitConfig(base, overlay *KitConfig) *KitConfig {
+	if base == nil {
+		return overlay
+	}
+	if overlay == nil {
+		return base
+	}
+	result := *base
+	if overlay.Disabled != nil {
+		result.Disabled = overlay.Disabled
+	}
+	if overlay.DefaultVersion != "" {
+		result.DefaultVersion = overlay.DefaultVersion
+	}
+	if overlay.ShadowNodeModules != nil {
+		result.ShadowNodeModules = overlay.ShadowNodeModules
+	}
+	if overlay.Onboarding != nil {
+		result.Onboarding = overlay.Onboarding
+	}
+	if overlay.TabTitle != "" {
+		result.TabTitle = overlay.TabTitle
+	}
+	if overlay.AllowAgentTermTitle != nil {
+		result.AllowAgentTermTitle = overlay.AllowAgentTermTitle
+	}
+	if overlay.Count != 0 {
+		result.Count = overlay.Count
+	}
+	// Accumulating lists: concatenate
+	result.Packages = slices.Concat(base.Packages, overlay.Packages)
+	result.Build = slices.Concat(base.Build, overlay.Build)
+	// Replacing list: last-wins
+	if overlay.Versions != nil {
+		result.Versions = overlay.Versions
+	}
+	return &result
 }
 
 func applyFlags(cfg Config, flags CLIFlags) Config {
