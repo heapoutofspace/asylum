@@ -18,6 +18,16 @@ func SyncNewKits(asylumDir string, interactive bool) (bool, error) {
 		return false, fmt.Errorf("load state: %w", err)
 	}
 
+	// If the global config needs v1→v2 migration, the user already has their
+	// kits configured. Mark all kits as seen so they aren't prompted.
+	if NeedsMigration(filepath.Join(asylumDir, "config.yaml")) {
+		state.KnownKits = kit.All()
+		if err := SaveState(asylumDir, state); err != nil {
+			return false, fmt.Errorf("save state: %w", err)
+		}
+		return false, nil
+	}
+
 	newKits := NewKits(kit.All(), state)
 	if len(newKits) == 0 {
 		return false, nil
