@@ -20,16 +20,16 @@ var testVersion = fmt.Sprintf("test-%d", time.Now().Unix())
 
 var baseOnce sync.Once
 var baseErr error
+var baseKits []*kit.Kit
 
 func ensureBaseImage(t *testing.T) {
 	t.Helper()
 	baseOnce.Do(func() {
-		kits, err := kit.Resolve([]string{"java", "python"}, nil)
-		if err != nil {
-			baseErr = err
+		baseKits, baseErr = kit.Resolve([]string{"java", "python"}, nil)
+		if baseErr != nil {
 			return
 		}
-		_, baseErr = image.EnsureBase(kits, nil, testVersion, false)
+		_, baseErr = image.EnsureBase(baseKits, nil, testVersion, false)
 	})
 	if baseErr != nil {
 		t.Fatalf("base image build failed: %v", baseErr)
