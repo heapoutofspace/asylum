@@ -12,6 +12,22 @@ func TestAssetName(t *testing.T) {
 	}
 }
 
+func TestNormalizeVersion(t *testing.T) {
+	tests := []struct {
+		input, want string
+	}{
+		{"", ""},
+		{"0.4.0", "v0.4.0"},
+		{"v0.4.0", "v0.4.0"},
+		{"v1.0.0-rc1", "v1.0.0-rc1"},
+	}
+	for _, tt := range tests {
+		if got := NormalizeVersion(tt.input); got != tt.want {
+			t.Errorf("NormalizeVersion(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
 func TestResolveChannel(t *testing.T) {
 	tests := []struct {
 		name          string

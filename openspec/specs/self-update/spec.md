@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Update to latest stable release
-The `self-update` subcommand SHALL query the GitHub Releases API for the latest non-prerelease and download the matching binary for the current OS and architecture, replacing the running binary atomically.
+The `self-update` subcommand SHALL query the GitHub Releases API for the latest non-prerelease and download the matching binary for the current OS and architecture, replacing the running binary atomically. When a version argument is provided, the specified release tag SHALL be fetched instead.
 
 #### Scenario: Successful stable update
 - **WHEN** `asylum self-update` is run and a newer stable release exists
@@ -10,6 +10,29 @@ The `self-update` subcommand SHALL query the GitHub Releases API for the latest 
 #### Scenario: Already up to date
 - **WHEN** `asylum self-update` is run and the running version matches the latest stable release
 - **THEN** a message is printed indicating the binary is already up to date, and no download occurs
+
+#### Scenario: Targeted version update
+- **WHEN** `asylum self-update 0.4.0` is run
+- **THEN** the release tagged `v0.4.0` is fetched and installed
+
+#### Scenario: Targeted version with v prefix
+- **WHEN** `asylum self-update v0.4.0` is run
+- **THEN** the release tagged `v0.4.0` is fetched and installed (the `v` prefix is normalized)
+
+#### Scenario: Already at targeted version
+- **WHEN** `asylum self-update 0.4.0` is run and the current version is `0.4.0`
+- **THEN** a message is printed indicating the binary is already at the requested version
+
+#### Scenario: Version not found
+- **WHEN** `asylum self-update 99.0.0` is run and no release with tag `v99.0.0` exists
+- **THEN** an error is printed indicating the release was not found
+
+### Requirement: Version and dev mutual exclusivity
+The `--dev` flag and a version argument SHALL NOT be combined. If both are provided, the CLI SHALL exit with an error.
+
+#### Scenario: Version and --dev conflict
+- **WHEN** `asylum self-update --dev 0.4.0` is run
+- **THEN** the CLI exits with an error indicating that `--dev` and a version argument cannot be combined
 
 ### Requirement: Dev channel update
 The `self-update` subcommand SHALL accept a `--dev` flag that targets the `dev` pre-release instead of the latest stable release.

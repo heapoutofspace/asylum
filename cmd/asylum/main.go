@@ -80,7 +80,7 @@ func main() {
 			die("load config: %v", err)
 		}
 		channel := selfupdate.ResolveChannel(flags.Dev, cfg.ReleaseChannel)
-		if err := selfupdate.Run(version, commit, channel, execPath); err != nil {
+		if err := selfupdate.Run(version, commit, channel, flags.TargetVersion, execPath); err != nil {
 			die("%v", err)
 		}
 		return
@@ -296,7 +296,8 @@ type cliFlags struct {
 	Admin          bool
 	Dev            bool
 	SkipOnboarding bool
-	Safe    bool
+	Safe           bool
+	TargetVersion  string
 }
 
 func parseArgs(args []string) (cliFlags, string, []string, error) {
@@ -408,19 +409,29 @@ func parseArgs(args []string) (cliFlags, string, []string, error) {
 			if i < len(args) {
 				return cliFlags{}, "", nil, fmt.Errorf("unexpected argument %q after ssh-init", args[i])
 			}
-		case arg == "self-update":
+		case arg == "self-update" || arg == "selfupdate":
 			subcommand = "self-update"
 			i++
 			for i < len(args) {
-				switch args[i] {
-				case "--dev":
+				switch {
+				case args[i] == "--dev":
 					flags.Dev = true
-				case "--safe":
+				case args[i] == "--safe":
 					flags.Safe = true
+				case !strings.HasPrefix(args[i], "-") && flags.TargetVersion == "":
+					flags.TargetVersion = args[i]
+				case !strings.HasPrefix(args[i], "-"):
+					return cliFlags{}, "", nil, fmt.Errorf("unexpected argument %q for self-update", args[i])
 				default:
 					return cliFlags{}, "", nil, fmt.Errorf("unknown flag %q for self-update", args[i])
 				}
 				i++
+			}
+			if flags.Dev && flags.TargetVersion != "" {
+				return cliFlags{}, "", nil, fmt.Errorf("--dev and version argument cannot be combined")
+			}
+			if flags.Safe && flags.TargetVersion != "" {
+				return cliFlags{}, "", nil, fmt.Errorf("--safe and version argument cannot be combined")
 			}
 		case arg == "run":
 			subcommand = "run"
@@ -706,7 +717,8 @@ Usage:
   asylum [flags] shell --admin  Admin shell with sudo notice
   asylum [flags] run <cmd>      Run command in container
   asylum ssh-init               Initialize SSH directory
-  asylum self-update [--dev]    Update to latest version
+  asylum self-update [version]  Update to latest (or specific) version
+  asylum self-update --dev      Update to latest dev build
   asylum self-update --safe     Emergency update (always dev, no checks)
 
 Flags:

@@ -43,7 +43,7 @@ asylum [flags] shell          Interactive zsh shell
 asylum [flags] shell --admin  Admin shell with sudo notice
 asylum [flags] run <cmd>      Run command in container
 asylum ssh-init               Set up SSH keys for containers
-asylum self-update [--dev]    Update to latest version
+asylum self-update [version]  Update to latest (or specific) version
 ```
 
 ### Flags
@@ -230,6 +230,7 @@ Removes Asylum Docker images and optionally clears caches. Agent config (`~/.asy
 
 ```sh
 asylum self-update          # Update to latest stable release
+asylum self-update 0.4.0   # Install a specific version
 asylum self-update --dev    # Update to latest dev build from main
 asylum self-update --safe   # Emergency update (always dev, no checks)
 ```

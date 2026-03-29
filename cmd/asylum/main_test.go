@@ -227,6 +227,45 @@ func TestParseArgs(t *testing.T) {
 			args:    []string{"self-update", "--verbose"},
 			wantErr: true,
 		},
+		{
+			name:    "selfupdate alias",
+			args:    []string{"selfupdate"},
+			wantSub: "self-update",
+		},
+		{
+			name:      "selfupdate alias with dev flag",
+			args:      []string{"selfupdate", "--dev"},
+			wantSub:   "self-update",
+			wantFlags: cliFlags{Dev: true},
+		},
+		{
+			name:      "self-update with version",
+			args:      []string{"self-update", "0.4.0"},
+			wantSub:   "self-update",
+			wantFlags: cliFlags{TargetVersion: "0.4.0"},
+		},
+		{
+			name:      "self-update with v-prefixed version",
+			args:      []string{"self-update", "v0.4.0"},
+			wantSub:   "self-update",
+			wantFlags: cliFlags{TargetVersion: "v0.4.0"},
+		},
+		{
+			name:    "self-update dev and version conflict",
+			args:    []string{"self-update", "--dev", "0.4.0"},
+			wantErr: true,
+		},
+		{
+			name:    "self-update safe and version conflict",
+			args:    []string{"self-update", "--safe", "0.4.0"},
+			wantErr: true,
+		},
+		{
+			name:      "selfupdate alias with version",
+			args:      []string{"selfupdate", "0.4.0"},
+			wantSub:   "self-update",
+			wantFlags: cliFlags{TargetVersion: "0.4.0"},
+		},
 
 		// --skip-onboarding flag
 		{

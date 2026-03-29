@@ -78,18 +78,39 @@ func SafeRun(execPath string) error {
 	return nil
 }
 
+// NormalizeVersion ensures the version string has a "v" prefix.
+func NormalizeVersion(v string) string {
+	if v == "" {
+		return ""
+	}
+	if !strings.HasPrefix(v, "v") {
+		return "v" + v
+	}
+	return v
+}
+
 // Run performs the self-update. It resolves the target binary path by following
 // symlinks from execPath, fetches the appropriate release, and atomically
-// replaces the binary.
-func Run(currentVersion, currentCommit, channel, execPath string) error {
-	binPath, downloadURL, rel, err := resolveUpdate(execPath, channel)
+// replaces the binary. If targetVersion is non-empty, that specific release is
+// fetched instead of resolving by channel.
+func Run(currentVersion, currentCommit, channel, targetVersion, execPath string) error {
+	fetchChannel := channel
+	if targetVersion != "" {
+		fetchChannel = NormalizeVersion(targetVersion)
+	}
+
+	binPath, downloadURL, rel, err := resolveUpdate(execPath, fetchChannel)
 	if err != nil {
 		return err
 	}
 
 	version := rel.TagName
-	if channel == "stable" && currentVersion == strings.TrimPrefix(version, "v") {
-		log.Success("already up to date (%s)", version)
+	if channel != "dev" && currentVersion == strings.TrimPrefix(version, "v") {
+		if targetVersion != "" {
+			log.Success("already at requested version (%s)", version)
+		} else {
+			log.Success("already up to date (%s)", version)
+		}
 		return nil
 	}
 
@@ -169,9 +190,12 @@ func findAssetURL(rel release) (string, error) {
 
 func fetchRelease(channel string) (release, error) {
 	var url string
-	if channel == "dev" {
+	switch {
+	case channel == "dev":
 		url = fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/dev", repo)
-	} else {
+	case strings.HasPrefix(channel, "v"):
+		url = fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", repo, channel)
+	default:
 		url = fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
 	}
 
