@@ -248,9 +248,20 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 	}
 	vol(histDir, filepath.Join(home, ".shell_history"), "rw")
 
-	// Agent config
-	agentDir := config.ExpandTilde(opts.Agent.AsylumConfigDir(), home)
-	vol(agentDir, config.ExpandTilde(opts.Agent.ContainerConfigDir(), home), "")
+	// Agent config — mount depends on isolation level
+	containerConfigDir := config.ExpandTilde(opts.Agent.ContainerConfigDir(), home)
+	switch opts.Config.AgentIsolation(opts.Agent.Name()) {
+	case "shared":
+		nativeDir := config.ExpandTilde(opts.Agent.NativeConfigDir(), home)
+		vol(nativeDir, containerConfigDir, "")
+	case "project":
+		projConfigDir := filepath.Join(home, ".asylum", "projects", cname, opts.Agent.Name()+"-config")
+		os.MkdirAll(projConfigDir, 0755)
+		vol(projConfigDir, containerConfigDir, "")
+	default: // "isolated" or empty
+		agentDir := config.ExpandTilde(opts.Agent.AsylumConfigDir(), home)
+		vol(agentDir, containerConfigDir, "")
+	}
 
 	// Direnv
 	envrc := filepath.Join(opts.ProjectDir, ".envrc")
@@ -440,6 +451,28 @@ func agentCommand(opts ExecOpts) []string {
 }
 
 // EnsureAgentConfig returns true if the config was freshly created (first run).
+// EnsureAgentConfigAt ensures the agent config exists at the given target directory,
+// seeding from the host native config if available.
+func EnsureAgentConfigAt(home string, a agent.Agent, targetDir string) (bool, error) {
+	if dirExists(targetDir) {
+		return false, nil
+	}
+
+	nativeDir := a.NativeConfigDir()
+	if nativeDir == "" {
+		log.Info("creating %s config directory", a.Name())
+		return true, os.MkdirAll(targetDir, 0755)
+	}
+	nativeDir = config.ExpandTilde(nativeDir, home)
+	if dirExists(nativeDir) {
+		log.Info("seeding %s config from %s", a.Name(), nativeDir)
+		return true, copyDir(nativeDir, targetDir)
+	}
+
+	log.Info("creating %s config directory", a.Name())
+	return true, os.MkdirAll(targetDir, 0755)
+}
+
 func EnsureAgentConfig(home string, a agent.Agent) (bool, error) {
 	agentDir := config.ExpandTilde(a.AsylumConfigDir(), home)
 

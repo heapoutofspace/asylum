@@ -185,6 +185,69 @@ func TestPortCount(t *testing.T) {
 	}
 }
 
+func TestAgentIsolation(t *testing.T) {
+	t.Run("returns value when set", func(t *testing.T) {
+		cfg := Config{Agents: map[string]*AgentConfig{"claude": {Config: "shared"}}}
+		if got := cfg.AgentIsolation("claude"); got != "shared" {
+			t.Errorf("got %q, want shared", got)
+		}
+	})
+	t.Run("returns empty when not set", func(t *testing.T) {
+		cfg := Config{Agents: map[string]*AgentConfig{"claude": {}}}
+		if got := cfg.AgentIsolation("claude"); got != "" {
+			t.Errorf("got %q, want empty", got)
+		}
+	})
+	t.Run("returns empty when agent missing", func(t *testing.T) {
+		cfg := Config{Agents: map[string]*AgentConfig{}}
+		if got := cfg.AgentIsolation("claude"); got != "" {
+			t.Errorf("got %q, want empty", got)
+		}
+	})
+	t.Run("returns empty when agents nil", func(t *testing.T) {
+		cfg := Config{}
+		if got := cfg.AgentIsolation("claude"); got != "" {
+			t.Errorf("got %q, want empty", got)
+		}
+	})
+}
+
+func TestSetAgentIsolation(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	os.WriteFile(path, []byte("version: \"0.2\"\nagent: claude\nagents:\n  claude:\n"), 0644)
+
+	if err := SetAgentIsolation(path, "claude", "shared"); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AgentIsolation("claude") != "shared" {
+		t.Errorf("isolation = %q, want shared", cfg.AgentIsolation("claude"))
+	}
+}
+
+func TestSetAgentIsolation_CreatesAgent(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	os.WriteFile(path, []byte("version: \"0.2\"\nagent: claude\n"), 0644)
+
+	if err := SetAgentIsolation(path, "claude", "project"); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AgentIsolation("claude") != "project" {
+		t.Errorf("isolation = %q, want project", cfg.AgentIsolation("claude"))
+	}
+}
+
 func TestExpandTilde(t *testing.T) {
 	home := "/Users/simon"
 	tests := []struct {

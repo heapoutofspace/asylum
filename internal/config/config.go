@@ -25,8 +25,23 @@ type KitConfig struct {
 	Count               int      `yaml:"count,omitempty"`
 }
 
-// AgentConfig holds per-agent configuration (empty for now, placeholder for future use).
-type AgentConfig struct{}
+// AgentConfig holds per-agent configuration.
+type AgentConfig struct {
+	Config string `yaml:"config,omitempty"` // shared, isolated, project
+}
+
+// AgentIsolation returns the config isolation level for the named agent.
+// Returns empty string if not set (triggers first-run prompt).
+func (c Config) AgentIsolation(agentName string) string {
+	if c.Agents == nil {
+		return ""
+	}
+	ac, ok := c.Agents[agentName]
+	if !ok || ac == nil {
+		return ""
+	}
+	return ac.Config
+}
 
 type Config struct {
 	Version        string                  `yaml:"version,omitempty"`

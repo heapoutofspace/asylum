@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+- Claude config isolation: choose between `shared` (host config), `isolated` (current default), or `project` (per-project) via first-run TUI prompt or `agents.claude.config` in config
+- TUI prompt framework using Bubble Tea for interactive single-choice and multi-choice prompts
+
 ### Changed
 - Container user now matches host user (username, UID, GID, home directory) instead of hardcoded `claude:1000:/home/claude` — fixes absolute symlink resolution and removes path mismatches
 - Container names now include the project name: `asylum-<hash>-<project>` (e.g., `asylum-7a3f2b1c9e04-myapp`). Existing project data is migrated automatically on first run.

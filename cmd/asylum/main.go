@@ -22,6 +22,7 @@ import (
 	"github.com/inventage-ai/asylum/internal/selfupdate"
 	"github.com/inventage-ai/asylum/internal/ssh"
 	"github.com/inventage-ai/asylum/internal/term"
+	"github.com/inventage-ai/asylum/internal/tui"
 )
 
 var version = "dev"
@@ -185,12 +186,45 @@ func main() {
 
 	// If no container running, build images and start one detached
 	if !docker.IsRunning(cname) {
-		seeded, err := container.EnsureAgentConfig(home, a)
-		if err != nil {
-			die("%v", err)
+		// Prompt for config isolation if not set (Claude agent only for now)
+		if cfg.AgentIsolation(a.Name()) == "" && a.Name() == "claude" {
+			level := promptConfigIsolation()
+			cfgPath := filepath.Join(home, ".asylum", "config.yaml")
+			if err := config.SetAgentIsolation(cfgPath, a.Name(), level); err != nil {
+				log.Error("save isolation config: %v", err)
+			}
+			// Apply to current config
+			if cfg.Agents == nil {
+				cfg.Agents = map[string]*config.AgentConfig{}
+			}
+			if cfg.Agents[a.Name()] == nil {
+				cfg.Agents[a.Name()] = &config.AgentConfig{}
+			}
+			cfg.Agents[a.Name()].Config = level
 		}
-		if seeded {
-			newSession = true
+
+		// Ensure agent config exists — behavior depends on isolation level
+		switch cfg.AgentIsolation(a.Name()) {
+		case "shared":
+			// Host dir used directly — no seeding needed
+		case "project":
+			// Seed per-project dir from host config
+			projConfigDir := filepath.Join(home, ".asylum", "projects", cname, a.Name()+"-config")
+			seeded, err := container.EnsureAgentConfigAt(home, a, projConfigDir)
+			if err != nil {
+				die("%v", err)
+			}
+			if seeded {
+				newSession = true
+			}
+		default: // "isolated" or empty
+			seeded, err := container.EnsureAgentConfig(home, a)
+			if err != nil {
+				die("%v", err)
+			}
+			if seeded {
+				newSession = true
+			}
 		}
 
 		baseRebuilt, err := image.EnsureBase(globalKits, agentInstalls, version, flags.Rebuild)
@@ -855,6 +889,20 @@ func collectOnboarding(cfg config.Config) map[string]bool {
 		m["npm"] = true
 	}
 	return m
+}
+
+func promptConfigIsolation() string {
+	options := []tui.Option{
+		{Label: "Shared with host", Description: "Use your host ~/.claude directly. Changes sync both ways."},
+		{Label: "Isolated (recommended)", Description: "Separate from host, shared across projects. This is the current default."},
+		{Label: "Project-isolated", Description: "Separate config per project. No state shared between projects."},
+	}
+	idx, err := tui.Select("How should Claude's config be managed?", options, 1)
+	if err != nil {
+		die("aborted")
+	}
+	levels := []string{"shared", "isolated", "project"}
+	return levels[idx]
 }
 
 func printUsage() {
