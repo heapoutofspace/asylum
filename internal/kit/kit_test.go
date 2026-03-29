@@ -49,7 +49,7 @@ func TestResolve_NilMeansAll(t *testing.T) {
 	cleanup := setupTestRegistry()
 	defer cleanup()
 
-	profiles, err := Resolve(nil)
+	profiles, err := Resolve(nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestResolve_EmptyMeansNone(t *testing.T) {
 	defer cleanup()
 
 	empty := []string{}
-	profiles, err := Resolve(empty)
+	profiles, err := Resolve(empty, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestResolve_TopLevelActivatesAllChildren(t *testing.T) {
 	defer cleanup()
 
 	names := []string{"alpha"}
-	profiles, err := Resolve(names)
+	profiles, err := Resolve(names, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestResolve_ChildActivatesParentOnly(t *testing.T) {
 	defer cleanup()
 
 	names := []string{"alpha/sub1"}
-	profiles, err := Resolve(names)
+	profiles, err := Resolve(names, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestResolve_Deduplication(t *testing.T) {
 
 	// Both "alpha" and "alpha/sub1" — alpha should appear only once
 	names := []string{"alpha", "alpha/sub1"}
-	profiles, err := Resolve(names)
+	profiles, err := Resolve(names, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestResolve_AllChildrenEquivalent(t *testing.T) {
 
 	// Selecting all children individually should be same as parent
 	names := []string{"alpha/sub1", "alpha/sub2"}
-	profiles, err := Resolve(names)
+	profiles, err := Resolve(names, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestResolve_UnknownProfile(t *testing.T) {
 	defer cleanup()
 
 	names := []string{"unknown"}
-	_, err := Resolve(names)
+	_, err := Resolve(names, nil)
 	if err == nil {
 		t.Fatal("expected error for unknown profile")
 	}
@@ -196,8 +196,127 @@ func TestResolve_UnknownSubProfile(t *testing.T) {
 	defer cleanup()
 
 	names := []string{"alpha/unknown"}
-	_, err := Resolve(names)
+	_, err := Resolve(names, nil)
 	if err == nil {
 		t.Fatal("expected error for unknown sub-profile")
+	}
+}
+
+func TestResolve_DefaultOnIncluded(t *testing.T) {
+	cleanup := setupTestRegistry()
+	defer cleanup()
+
+	Register(&Kit{Name: "defkit", DefaultOn: true})
+	defer delete(registry, "defkit")
+
+	// Explicit kits should also include default-on
+	names := []string{"alpha"}
+	result, err := Resolve(names, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, k := range result {
+		if k.Name == "defkit" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("default-on kit should be included when explicit kits are listed")
+	}
+}
+
+func TestResolve_DefaultOnExcludedWhenDisabled(t *testing.T) {
+	cleanup := setupTestRegistry()
+	defer cleanup()
+
+	Register(&Kit{Name: "defkit", DefaultOn: true})
+	defer delete(registry, "defkit")
+
+	names := []string{"alpha"}
+	disabled := map[string]bool{"defkit": true}
+	result, err := Resolve(names, disabled)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range result {
+		if k.Name == "defkit" {
+			t.Error("disabled default-on kit should NOT be included")
+		}
+	}
+}
+
+func TestResolve_DefaultOnNotAddedToEmpty(t *testing.T) {
+	cleanup := setupTestRegistry()
+	defer cleanup()
+
+	Register(&Kit{Name: "defkit", DefaultOn: true})
+	defer delete(registry, "defkit")
+
+	// Empty slice = no kits, default-on NOT added
+	result, err := Resolve([]string{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result) != 0 {
+		t.Errorf("empty slice should resolve to no kits, got %d", len(result))
+	}
+}
+
+func TestResolve_DependencySatisfied(t *testing.T) {
+	cleanup := setupTestRegistry()
+	defer cleanup()
+
+	Register(&Kit{Name: "depkit", Deps: []string{"alpha"}})
+	defer delete(registry, "depkit")
+
+	// alpha is active, so depkit's dependency is satisfied — no error
+	names := []string{"alpha", "depkit"}
+	_, err := Resolve(names, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestResolve_MissingDependency(t *testing.T) {
+	cleanup := setupTestRegistry()
+	defer cleanup()
+
+	Register(&Kit{Name: "depkit", Deps: []string{"missing"}})
+	defer delete(registry, "depkit")
+
+	// "missing" is not in the registry as a kit, but depkit references it.
+	// Resolution succeeds (warn only, don't block).
+	names := []string{"alpha", "depkit"}
+	result, err := Resolve(names, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// depkit should still be in the result
+	found := false
+	for _, k := range result {
+		if k.Name == "depkit" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("kit with missing dep should still be included (warn only)")
+	}
+}
+
+func TestResolve_DisabledKitExcluded(t *testing.T) {
+	cleanup := setupTestRegistry()
+	defer cleanup()
+
+	names := []string{"alpha", "beta"}
+	disabled := map[string]bool{"beta": true}
+	result, err := Resolve(names, disabled)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range result {
+		if k.Name == "beta" {
+			t.Error("disabled kit should not be in result")
+		}
 	}
 }

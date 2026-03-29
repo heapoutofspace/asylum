@@ -5,10 +5,11 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/inventage-ai/asylum/internal/log"
 	"github.com/inventage-ai/asylum/internal/onboarding"
 )
 
-// Kit groups all language-specific concerns: installation,
+// Kit groups all concerns for a tool or language: installation,
 // environment setup, caching, onboarding, and config defaults.
 type Kit struct {
 	Name              string
@@ -19,6 +20,8 @@ type Kit struct {
 	CacheDirs         map[string]string  // name → container path
 	OnboardingTasks   []onboarding.Task
 	SubKits           map[string]*Kit
+	Deps              []string // kit names this kit depends on
+	DefaultOn         bool     // active unless explicitly disabled
 }
 
 var registry = map[string]*Kit{}
@@ -38,17 +41,21 @@ func All() []string {
 	return names
 }
 
-// Resolve takes a list of kit names and returns a flat, deduplicated
-// list of kits in deterministic order (parents before children).
+// Resolve takes a list of kit names and a set of disabled kit names,
+// and returns a flat, deduplicated list of kits in deterministic order.
 //
 // Semantics:
-//   - nil input means "all kits" (backwards compatibility)
-//   - empty slice means "no kits"
+//   - nil names means "all kits" (backwards compatibility)
+//   - empty names slice means "no kits" (default-on kits NOT added)
 //   - "java" activates java + all sub-kits
 //   - "java/maven" activates java + maven only
-func Resolve(names []string) ([]*Kit, error) {
+//   - default-on kits are added when names is non-nil and non-empty
+//   - disabled kits are excluded from the result
+//   - dependency warnings are emitted for missing deps
+func Resolve(names []string, disabled map[string]bool) ([]*Kit, error) {
 	if names == nil {
-		return resolveAll(), nil
+		result := resolveAll()
+		return filterDisabled(result, disabled), nil
 	}
 	if len(names) == 0 {
 		return nil, nil
@@ -58,7 +65,7 @@ func Resolve(names []string) ([]*Kit, error) {
 	var result []*Kit
 
 	add := func(k *Kit) {
-		if !seen[k.Name] {
+		if !seen[k.Name] && !disabled[k.Name] {
 			seen[k.Name] = true
 			result = append(result, k)
 		}
@@ -86,7 +93,46 @@ func Resolve(names []string) ([]*Kit, error) {
 		}
 	}
 
+	// Add default-on kits that weren't explicitly listed or disabled
+	for _, name := range All() {
+		k := registry[name]
+		if k.DefaultOn && !seen[k.Name] && !disabled[k.Name] {
+			add(k)
+			for _, sub := range sortedSubKeys(k) {
+				add(k.SubKits[sub])
+			}
+		}
+	}
+
+	// Validate dependencies
+	activeSet := map[string]bool{}
+	for _, k := range result {
+		// Extract top-level name from "parent/child"
+		top, _, _ := strings.Cut(k.Name, "/")
+		activeSet[top] = true
+	}
+	for _, k := range result {
+		for _, dep := range k.Deps {
+			if !activeSet[dep] {
+				log.Warn("kit %q requires the %q kit which is not active", k.Name, dep)
+			}
+		}
+	}
+
 	return result, nil
+}
+
+func filterDisabled(kits []*Kit, disabled map[string]bool) []*Kit {
+	if len(disabled) == 0 {
+		return kits
+	}
+	var result []*Kit
+	for _, k := range kits {
+		if !disabled[k.Name] {
+			result = append(result, k)
+		}
+	}
+	return result
 }
 
 func resolveAll() []*Kit {

@@ -29,7 +29,7 @@ func claudeOnlyInstalls(t *testing.T) []*agent.AgentInstall {
 }
 
 func TestAssembleDockerfile_AllProfiles(t *testing.T) {
-	profiles, err := kit.Resolve(nil)
+	profiles, err := kit.Resolve(nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestAssembleDockerfile_AllProfiles(t *testing.T) {
 
 func TestAssembleDockerfile_NoProfiles(t *testing.T) {
 	noKits := []string{}
-	profiles, err := kit.Resolve(noKits)
+	profiles, err := kit.Resolve(noKits, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestAssembleDockerfile_NoProfiles(t *testing.T) {
 }
 
 func TestAssembleDockerfile_AgentSnippets(t *testing.T) {
-	profiles, _ := kit.Resolve(nil)
+	profiles, _ := kit.Resolve(nil, nil)
 
 	t.Run("all agents", func(t *testing.T) {
 		df := string(assembleDockerfile(profiles, allAgentInstalls(t)))
@@ -116,7 +116,7 @@ func TestAssembleDockerfile_AgentSnippets(t *testing.T) {
 }
 
 func TestAssembleEntrypoint_AllProfiles(t *testing.T) {
-	profiles, err := kit.Resolve(nil)
+	profiles, err := kit.Resolve(nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +133,7 @@ func TestAssembleEntrypoint_AllProfiles(t *testing.T) {
 
 func TestAssembleEntrypoint_NoProfiles(t *testing.T) {
 	noKits := []string{}
-	profiles, err := kit.Resolve(noKits)
+	profiles, err := kit.Resolve(noKits, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestAssembleEntrypoint_NoProfiles(t *testing.T) {
 }
 
 func TestAssembleEntrypoint_BannerLines(t *testing.T) {
-	profiles, _ := kit.Resolve(nil)
+	profiles, _ := kit.Resolve(nil, nil)
 
 	t.Run("all profiles and agents", func(t *testing.T) {
 		ep := string(assembleEntrypoint(profiles, allAgentInstalls(t)))
@@ -194,7 +194,7 @@ func TestAssembleEntrypoint_BannerLines(t *testing.T) {
 }
 
 func TestBaseHash_DeterministicAndChanges(t *testing.T) {
-	profiles, _ := kit.Resolve(nil)
+	profiles, _ := kit.Resolve(nil, nil)
 	agents1 := allAgentInstalls(t)
 
 	h1 := baseHash(profiles, agents1)
@@ -211,7 +211,7 @@ func TestBaseHash_DeterministicAndChanges(t *testing.T) {
 
 	// Different profiles → different hash
 	java := []string{"java"}
-	javaOnly, _ := kit.Resolve(java)
+	javaOnly, _ := kit.Resolve(java, nil)
 	h4 := baseHash(javaOnly, agents1)
 	if h1 == h4 {
 		t.Error("different profiles should produce different hash")

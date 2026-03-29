@@ -13,6 +13,7 @@ import (
 
 // KitConfig holds per-kit configuration options.
 type KitConfig struct {
+	Disabled            *bool    `yaml:"disabled,omitempty"`
 	Versions            []string `yaml:"versions,omitempty"`
 	DefaultVersion      string   `yaml:"default-version,omitempty"`
 	Packages            []string `yaml:"packages,omitempty"`
@@ -37,13 +38,36 @@ type Config struct {
 	Env            map[string]string       `yaml:"env,omitempty"`
 }
 
-// KitActive returns true if the named kit is present in the config.
+// KitActive returns true if the named kit is present and not disabled.
 func (c Config) KitActive(name string) bool {
 	if c.Kits == nil {
 		return false
 	}
-	_, ok := c.Kits[name]
-	return ok
+	kc, ok := c.Kits[name]
+	if !ok {
+		return false
+	}
+	if kc != nil && kc.Disabled != nil && *kc.Disabled {
+		return false
+	}
+	return true
+}
+
+// DisabledKits returns a set of kit names that are explicitly disabled.
+func (c Config) DisabledKits() map[string]bool {
+	if c.Kits == nil {
+		return nil
+	}
+	disabled := map[string]bool{}
+	for name, kc := range c.Kits {
+		if kc != nil && kc.Disabled != nil && *kc.Disabled {
+			disabled[name] = true
+		}
+	}
+	if len(disabled) == 0 {
+		return nil
+	}
+	return disabled
 }
 
 // KitOption returns the KitConfig for the named kit, or nil if not present.

@@ -22,7 +22,7 @@ agents:
 # A kit is active when its key is present (even with no options).
 # Comment out or remove a kit to disable it entirely.
 kits:
-  docker:               # Docker-in-Docker support (remove to disable)
+  docker:               # Docker-in-Docker support
 
   java:
     versions:
@@ -45,7 +45,12 @@ kits:
     # packages:          # npm packages installed globally
     #   - turbo
 
-  # apt:                 # System packages installed via apt-get
+  # Default-on kits (active even without config; disable with "disabled: true")
+  # github:             # GitHub CLI (gh)
+  # openspec:           # OpenSpec CLI (requires node)
+  # shell:              # oh-my-zsh, tmux, direnv hooks
+
+  # apt:                # System packages installed via apt-get
   #   packages:
   #     - imagemagick
   #     - ffmpeg

@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- Kit dependencies: kits can declare `Deps` on other kits (validated with warnings at resolve time)
+- Default-on kits: `github`, `openspec`, and `shell` are active unless explicitly disabled with `disabled: true`
+- New `github` kit: GitHub CLI (gh) extracted from core Dockerfile
+- New `openspec` kit: OpenSpec CLI extracted from node kit, depends on node
+- New `shell` kit: oh-my-zsh, tmux config, direnv hooks, terminal size handling extracted from Dockerfile tail
+- Kit disabling: `disabled: true` in KitConfig excludes a kit; project config can disable globally-configured kits
+- Maven moved to `java/maven` sub-kit (no longer in core apt-get)
+- Python build deps (`python3-dev`, `libssl-dev`, etc.) moved to `python` kit
 - `self-update` accepts an optional version argument to install a specific release (e.g., `asylum self-update 0.4.0`)
 - `selfupdate` accepted as alias for `self-update`
 - E2e test suite with echo agent for full binary lifecycle testing

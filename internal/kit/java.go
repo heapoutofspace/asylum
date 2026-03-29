@@ -22,8 +22,13 @@ fi
 		SubKits: map[string]*Kit{
 			"maven": {
 				Name:        "java/maven",
-				Description: "Maven dependency caching",
-				CacheDirs:   map[string]string{"maven": "/home/claude/.m2"},
+				Description: "Maven with dependency caching",
+				DockerSnippet: `# Install Maven
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends maven && rm -rf /var/lib/apt/lists/*
+USER claude
+`,
+				CacheDirs: map[string]string{"maven": "/home/claude/.m2"},
 			},
 			"gradle": {
 				Name:        "java/gradle",

@@ -81,9 +81,11 @@ func MigrateV1ToV2(path string) error {
 		return m
 	}
 
-	// Docker was always enabled in v1, so ensure docker kit is present
-	if _, exists := kits["docker"]; !exists {
-		kits["docker"] = map[string]any{}
+	// These were always enabled in v1, ensure they're present as kits
+	for _, name := range []string{"docker", "github", "openspec", "shell"} {
+		if _, exists := kits[name]; !exists {
+			kits[name] = map[string]any{}
+		}
 	}
 
 	// profiles: [java, node] → kits: {java: {}, node: {}}

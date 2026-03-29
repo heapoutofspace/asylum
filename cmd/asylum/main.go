@@ -121,7 +121,7 @@ func main() {
 	}
 
 	// Resolve all active kits from config
-	allKits, err := kit.Resolve(cfg.KitNames())
+	allKits, err := kit.Resolve(cfg.KitNames(), cfg.DisabledKits())
 	if err != nil {
 		die("%v", err)
 	}
@@ -650,7 +650,7 @@ func resolveKitTiers(projectDir string, allKits []*kit.Kit) (global, projectOnly
 		return allKits, nil
 	}
 
-	globalResolved, err := kit.Resolve(globalCfg.KitNames())
+	globalResolved, err := kit.Resolve(globalCfg.KitNames(), globalCfg.DisabledKits())
 	if err != nil {
 		return allKits, nil
 	}

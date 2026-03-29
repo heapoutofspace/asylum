@@ -800,6 +800,12 @@ func TestAppendVolumesCacheNamedVolumes(t *testing.T) {
 		Config:     config.Config{},
 		Agent:      stubAgent{},
 		ProjectDir: projectDir,
+		CacheDirs: map[string]string{
+			"npm":    "/home/claude/.npm",
+			"pip":    "/home/claude/.cache/pip",
+			"maven":  "/home/claude/.m2",
+			"gradle": "/home/claude/.gradle",
+		},
 	}
 
 	args, err := appendVolumes([]string{}, home, cname, opts)

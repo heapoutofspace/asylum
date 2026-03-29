@@ -4,7 +4,14 @@ func init() {
 	Register(&Kit{
 		Name:        "python",
 		Description: "Python tools via uv",
-		DockerSnippet: `# Setup Python tools
+		DockerSnippet: `# Install Python build dependencies
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-dev python3-pip python3-venv libssl-dev libffi-dev && \
+    rm -rf /var/lib/apt/lists/*
+USER claude
+
+# Setup Python tools
 RUN $HOME/.local/bin/uv tool install black && \
     $HOME/.local/bin/uv tool install ruff && \
     $HOME/.local/bin/uv tool install mypy && \

@@ -14,8 +14,7 @@ RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && 
         ts-node \
         eslint \
         prettier \
-        nodemon \
-        @fission-ai/openspec@latest'
+        nodemon'
 `,
 		BannerLines: `    echo "Node.js:   $(node --version 2>/dev/null || echo 'not found')"
 `,
