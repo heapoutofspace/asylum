@@ -41,12 +41,21 @@ If a version is provided (e.g., `/release 0.3.0`), use it. If no version is prov
    - Warn the user: "No unreleased changes in CHANGELOG.md. Are you sure you want to release?"
    - If confirmed, proceed. Otherwise, abort.
 
-4. **Move unreleased entries to a versioned section**
+4. **Clean up and organize changelog entries**
+
+   Before moving entries to the versioned section, process the unreleased entries:
+
+   - **Remove internal-only entries**: Drop fixes for bugs introduced since the last release (not present in the previous release) and changes to features that were also added since the last release. Users upgrading from the last release never saw these bugs or intermediate states, so they're noise. Check git tags and the previous release's changelog to determine what was already shipped.
+   - **Merge related entries**: If multiple entries describe changes to the same feature (e.g., an "Added" entry and a later "Changed" entry for the same thing), merge them into a single entry that describes the final state.
+   - **Order by importance**: Within each category (Added/Changed/Fixed), order entries by user impact — breaking changes and major features first, minor improvements last.
+
+5. **Move entries to a versioned section and add summary**
 
    In `CHANGELOG.md`:
    - Replace `## Unreleased` content with an empty Unreleased section
    - Insert a new version section below it: `## <version> — YYYY-MM-DD` (today's date)
-   - Move all the unreleased entries into this new section
+   - Move the cleaned-up entries into this new section
+   - Write a 2-3 sentence executive summary and place it between the version header and the first `### Added` section. The summary should highlight the most important user-facing changes in plain language — think "what would someone care about when deciding to upgrade?" Don't just list categories.
 
    The result should look like:
    ```
@@ -54,17 +63,19 @@ If a version is provided (e.g., `/release 0.3.0`), use it. If no version is prov
 
    ## 0.3.0 — 2026-03-18
 
+   Summary text goes here. Two to three sentences covering the highlights.
+
    ### Added
    - ...
    ```
 
-5. **Commit and tag**
+6. **Commit and tag**
 
    - Stage only `CHANGELOG.md` (and any files from step 1 if the user chose to commit)
    - Create a commit with message: `Release v<version>`
    - Create an annotated tag: `git tag v<version> -m "v<version>"`
 
-6. **Summary**
+7. **Summary**
 
    Show:
    - The new version number

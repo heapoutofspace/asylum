@@ -51,38 +51,33 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Extract changelog
-        id: changelog
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          # Extract the section for this version (between its header and the next ## header)
-          CHANGELOG=$(sed -n "/^## ${VERSION}/,/^## /{/^## ${VERSION}/d;/^## /d;p;}" CHANGELOG.md | sed '/^$/N;/^\n$/d')
-          # Escape for GitHub Actions output
-          {
-            echo "body<<CHANGELOG_EOF"
-            echo "$CHANGELOG"
-            echo "CHANGELOG_EOF"
-          } >> "$GITHUB_OUTPUT"
-
       - name: Notify Rocket.Chat
         env:
           ROCKETCHAT_WEBHOOK_URL: ${{ secrets.ROCKETCHAT_WEBHOOK_URL }}
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          read -r -d '' TEXT <<EOF || true
-          **Asylum ${VERSION}** has been released :rocket:
+          CHANGELOG=$(sed -n "/^## ${VERSION}/,/^## /{/^## ${VERSION}/d;/^## /d;p;}" CHANGELOG.md | sed '/^$/N;/^\n$/d')
 
-          **Update:**
-          \`\`\`
-          asylum self-update
-          \`\`\`
+          # Summary is the text before the first ### section
+          SUMMARY=$(echo "$CHANGELOG" | sed -n '/^### /q;p' | sed '/^$/d')
+          ADDED=$(echo "$CHANGELOG" | sed -n '/^### Added/,/^### /{/^### Added/d;/^### /d;p;}' | sed '/^$/d')
+          CHANGED=$(echo "$CHANGELOG" | sed -n '/^### Changed/,/^### /{/^### Changed/d;/^### /d;p;}' | sed '/^$/d')
+          FIXED=$(echo "$CHANGELOG" | sed -n '/^### Fixed/,/^### \|$/{ /^### Fixed/d; /^### /d; p; }' | sed '/^$/d')
 
-          **What's new:**
-          ${{ steps.changelog.outputs.body }}
-
-          [Documentation](https://asylum.inventage.ai/${VERSION}/) · [Release](https://github.com/inventage-ai/asylum/releases/tag/${GITHUB_REF_NAME})
-          EOF
-
-          curl -sf -X POST "$ROCKETCHAT_WEBHOOK_URL" \
+          jq -n \
+            --arg version "$VERSION" \
+            --arg tag "${GITHUB_REF_NAME}" \
+            --arg summary "$SUMMARY" \
+            --arg added "$ADDED" \
+            --arg changed "$CHANGED" \
+            --arg fixed "$FIXED" \
+          '{
+            text: (":rocket: **Asylum " + $version + "** has been released\n\n" + (if ($summary | length) > 0 then $summary + "\n\n" else "" end) + "**Update:**\n```\nasylum self-update\n```\n\n[Documentation](https://asylum.inventage.ai/" + $version + "/) · [Release](https://github.com/inventage-ai/asylum/releases/tag/" + $tag + ")"),
+            attachments: [
+              (if ($added | length) > 0 then { title: "Added", text: $added, color: "#2ecc71" } else empty end),
+              (if ($changed | length) > 0 then { title: "Changed", text: $changed, color: "#f39c12" } else empty end),
+              (if ($fixed | length) > 0 then { title: "Fixed", text: $fixed, color: "#3498db" } else empty end)
+            ]
+          }' | curl -sf -X POST "$ROCKETCHAT_WEBHOOK_URL" \
             -H 'Content-Type: application/json' \
-            -d "$(jq -n --arg text "$TEXT" '{text: $text}')"
+            -d @-
