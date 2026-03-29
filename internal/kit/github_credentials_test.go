@@ -27,8 +27,11 @@ func TestGithubCredentialFunc_NoGh(t *testing.T) {
 		if len(mounts) != 1 {
 			t.Fatalf("expected 1 mount when gh authenticated, got %d", len(mounts))
 		}
-		if mounts[0].Destination != "~/.config/gh/hosts.yml" {
-			t.Errorf("Destination = %q, want %q", mounts[0].Destination, "~/.config/gh/hosts.yml")
+		if mounts[0].Destination != "~/.config/gh" {
+			t.Errorf("Destination = %q, want %q", mounts[0].Destination, "~/.config/gh")
+		}
+		if mounts[0].FileName != "hosts.yml" {
+			t.Errorf("FileName = %q, want %q", mounts[0].FileName, "hosts.yml")
 		}
 		if !strings.Contains(string(mounts[0].Content), "oauth_token") {
 			t.Error("expected hosts.yml to contain oauth_token")
