@@ -11,6 +11,11 @@ if command -v fnm >/dev/null 2>&1; then
     eval "$(fnm env --shell bash)"
 fi
 
+# Setup mise if available (needed for Java/Gradle)
+if command -v mise >/dev/null 2>&1; then
+    eval "$(mise activate bash)"
+fi
+
 # Set proper permissions on mounted SSH directory
 if [ -d "$HOME/.ssh" ]; then
     chmod 700 "$HOME/.ssh" 2>/dev/null || true

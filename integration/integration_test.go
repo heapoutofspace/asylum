@@ -13,6 +13,7 @@ import (
 
 	"github.com/inventage-ai/asylum/internal/docker"
 	"github.com/inventage-ai/asylum/internal/image"
+	"github.com/inventage-ai/asylum/internal/kit"
 )
 
 var testVersion = fmt.Sprintf("test-%d", time.Now().Unix())
@@ -23,7 +24,12 @@ var baseErr error
 func ensureBaseImage(t *testing.T) {
 	t.Helper()
 	baseOnce.Do(func() {
-		_, baseErr = image.EnsureBase(nil, nil, testVersion, false)
+		kits, err := kit.Resolve([]string{"java", "python"}, nil)
+		if err != nil {
+			baseErr = err
+			return
+		}
+		_, baseErr = image.EnsureBase(kits, nil, testVersion, false)
 	})
 	if baseErr != nil {
 		t.Fatalf("base image build failed: %v", baseErr)

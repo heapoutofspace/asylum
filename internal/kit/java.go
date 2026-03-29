@@ -27,13 +27,10 @@ RUN ~/.local/bin/mise install java@17 java@21 java@25 && \
 		RulesSnippet: `### Java (java kit)
 JDK 17, 21, and 25 are installed via mise. The default is 21. Switch versions with ` + "`mise use java@<version>`" + `.
 `,
-		EntrypointSnippet: `# Activate mise for Java/Gradle
-if command -v mise >/dev/null 2>&1; then
-    eval "$(mise activate bash)"
-    if [ -n "${ASYLUM_JAVA_VERSION:-}" ]; then
-        mise use --global java@"${ASYLUM_JAVA_VERSION}" >/dev/null 2>&1
-        eval "$(mise env)"
-    fi
+		EntrypointSnippet: `# Select Java version if configured
+if [ -n "${ASYLUM_JAVA_VERSION:-}" ] && command -v mise >/dev/null 2>&1; then
+    mise use --global java@"${ASYLUM_JAVA_VERSION}" >/dev/null 2>&1
+    eval "$(mise env)"
 fi
 `,
 		BannerLines: `    echo "Java:      $(java -version 2>&1 | head -1 | cut -d'"' -f2 || echo 'not found')"

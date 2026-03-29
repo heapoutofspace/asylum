@@ -140,8 +140,8 @@ func TestAssembleEntrypoint_NoProfiles(t *testing.T) {
 	ep := assembleEntrypoint(profiles, nil)
 	s := string(ep)
 
-	if strings.Contains(s, "mise activate bash") {
-		t.Error("should not contain java entrypoint snippet")
+	if strings.Contains(s, "ASYLUM_JAVA_VERSION") {
+		t.Error("should not contain java version selection snippet")
 	}
 	if !strings.Contains(s, "Asylum entrypoint") {
 		t.Error("should contain core")

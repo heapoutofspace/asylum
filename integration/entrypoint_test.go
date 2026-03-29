@@ -4,6 +4,7 @@ package integration_test
 
 import (
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -28,8 +29,10 @@ func TestEntrypointDefaults(t *testing.T) {
 	if v := results["SAFE_DIR"]; v != "*" {
 		t.Errorf("safe.directory = %q, want \"*\"", v)
 	}
-	if v := results["GIT_EMAIL"]; v != "claude@asylum" {
-		t.Errorf("user.email = %q, want \"claude@asylum\"", v)
+	u, _ := user.Current()
+	wantEmail := u.Username + "@asylum"
+	if v := results["GIT_EMAIL"]; v != wantEmail {
+		t.Errorf("user.email = %q, want %q", v, wantEmail)
 	}
 	if v := results["NODE"]; !strings.HasPrefix(v, "v") {
 		t.Errorf("node --version = %q, want v*", v)
