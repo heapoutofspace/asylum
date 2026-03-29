@@ -4,7 +4,6 @@ func init() {
 	Register(&Kit{
 		Name:        "github",
 		Description: "GitHub CLI",
-		DefaultOn:   true,
 		Tools:       []string{"gh"},
 		DockerSnippet: `# Install GitHub CLI
 USER root

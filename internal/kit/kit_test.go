@@ -309,6 +309,30 @@ func TestResolve_DefaultOnNotAddedToEmpty(t *testing.T) {
 	}
 }
 
+func TestResolve_DependencyAutoActivated(t *testing.T) {
+	cleanup := setupTestRegistry()
+	defer cleanup()
+
+	Register(&Kit{Name: "depkit", Deps: []string{"alpha"}})
+	defer delete(registry, "depkit")
+
+	// Only depkit is listed; alpha should be auto-activated as a dependency
+	names := []string{"depkit"}
+	result, err := Resolve(names, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, k := range result {
+		if k.Name == "alpha" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("dependency 'alpha' should be auto-activated")
+	}
+}
+
 func TestResolve_DependencySatisfied(t *testing.T) {
 	cleanup := setupTestRegistry()
 	defer cleanup()

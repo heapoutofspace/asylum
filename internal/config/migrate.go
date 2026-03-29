@@ -10,8 +10,10 @@ import (
 const currentVersion = "0.2"
 
 // NeedsMigration checks if a config file needs migration to v2 format.
-// Global config: detected by missing or old version field.
-// Project config: detected by presence of "features" key.
+// Global config (~/.asylum/config.yaml): needs migration if version field
+// is missing or older than currentVersion.
+// Project config (.asylum, .asylum.local): needs migration if v1-only keys
+// are present (features, profiles, packages, etc.).
 func NeedsMigration(path string) bool {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -23,7 +25,7 @@ func NeedsMigration(path string) bool {
 		return false
 	}
 
-	// Global config: has version field that's old or missing
+	// If version field exists and is current, no migration needed
 	if v, ok := raw["version"]; ok {
 		if s, ok := v.(string); ok && s >= currentVersion {
 			return false
@@ -31,13 +33,13 @@ func NeedsMigration(path string) bool {
 		return true
 	}
 
-	// Project config: has "features" key (v1 indicator)
-	if _, ok := raw["features"]; ok {
+	// Global config: missing version field means it predates v2
+	if strings.HasSuffix(path, "config.yaml") {
 		return true
 	}
 
-	// Check for other v1-only keys
-	for _, key := range []string{"profiles", "packages", "versions", "onboarding", "tab-title"} {
+	// Project config: check for v1-only keys
+	for _, key := range []string{"features", "profiles", "packages", "versions", "onboarding", "tab-title"} {
 		if _, ok := raw[key]; ok {
 			return true
 		}
@@ -48,14 +50,12 @@ func NeedsMigration(path string) bool {
 
 // MigrateV1ToV2 reads a config file, transforms v1 fields to v2 structure,
 // and writes back. Creates a .backup before modifying.
+//
+// Global configs start from defaultConfig (preserving comments and all kits),
+// with user values overlaid. Project configs transform v1 fields in place.
 func MigrateV1ToV2(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return err
-	}
-
-	var raw map[string]any
-	if err := yaml.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 
@@ -67,6 +67,96 @@ func MigrateV1ToV2(path string) error {
 		}
 	}
 
+	if strings.HasSuffix(path, "config.yaml") {
+		return migrateGlobalConfig(path, data)
+	}
+	return migrateProjectConfig(path, data)
+}
+
+// migrateGlobalConfig transforms v1 fields, then overlays user customizations
+// onto the full default config. This preserves comments and ensures all kits
+// are present.
+func migrateGlobalConfig(path string, data []byte) error {
+	// First transform v1 fields into v2 structure
+	var raw map[string]any
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	transformV1Fields(raw)
+
+	// Re-parse as typed Config to extract user values
+	transformed, err := yaml.Marshal(raw)
+	if err != nil {
+		return err
+	}
+	var user Config
+	if err := yaml.Unmarshal(transformed, &user); err != nil {
+		return err
+	}
+
+	// Start from the documented default config
+	result := defaultConfig
+
+	// Overlay user's non-default scalar values
+	if user.ReleaseChannel != "" && user.ReleaseChannel != "stable" {
+		result = strings.Replace(result, "release-channel: stable", "release-channel: "+user.ReleaseChannel, 1)
+	}
+	if user.Agent != "" && user.Agent != "claude" {
+		result = strings.Replace(result, "agent: claude", "agent: "+user.Agent, 1)
+	}
+
+	// Append user volumes
+	if len(user.Volumes) > 0 {
+		var b strings.Builder
+		b.WriteString("\nvolumes:\n")
+		for _, v := range user.Volumes {
+			b.WriteString("  - " + v + "\n")
+		}
+		result += b.String()
+	}
+
+	// Append user ports
+	if len(user.Ports) > 0 {
+		var b strings.Builder
+		b.WriteString("\nports:\n")
+		for _, p := range user.Ports {
+			b.WriteString("  - \"" + p + "\"\n")
+		}
+		result += b.String()
+	}
+
+	// Append user env vars
+	if len(user.Env) > 0 {
+		var b strings.Builder
+		b.WriteString("\nenv:\n")
+		for k, v := range user.Env {
+			b.WriteString("  " + k + ": " + v + "\n")
+		}
+		result += b.String()
+	}
+
+	return os.WriteFile(path, []byte(result), 0644)
+}
+
+// migrateProjectConfig transforms v1 fields to v2 kit structure in place.
+func migrateProjectConfig(path string, data []byte) error {
+	var raw map[string]any
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	transformV1Fields(raw)
+
+	out, err := yaml.Marshal(raw)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, out, 0644)
+}
+
+// transformV1Fields converts v1 config keys (profiles, packages, features,
+// versions, onboarding, tab-title, agents list) into v2 kit structure in place.
+func transformV1Fields(raw map[string]any) {
 	kits := map[string]any{}
 	if existing, ok := raw["kits"].(map[string]any); ok {
 		kits = existing
@@ -79,13 +169,6 @@ func MigrateV1ToV2(path string) error {
 		m := map[string]any{}
 		kits[name] = m
 		return m
-	}
-
-	// These were always enabled in v1, ensure they're present as kits
-	for _, name := range []string{"docker", "github", "openspec", "shell"} {
-		if _, exists := kits[name]; !exists {
-			kits[name] = map[string]any{}
-		}
 	}
 
 	// profiles: [java, node] → kits: {java: {}, node: {}}
@@ -142,7 +225,6 @@ func MigrateV1ToV2(path string) error {
 			kit := ensureKit("title")
 			kit["allow-agent-terminal-title"] = v
 		}
-		// features.onboarding is dropped (global disable no longer exists)
 		delete(raw, "features")
 	}
 
@@ -178,15 +260,4 @@ func MigrateV1ToV2(path string) error {
 	if len(kits) > 0 {
 		raw["kits"] = kits
 	}
-
-	// Set version for global configs (has version key or is ~/.asylum/config.yaml)
-	if _, hadVersion := raw["version"]; hadVersion || strings.HasSuffix(path, "config.yaml") {
-		raw["version"] = currentVersion
-	}
-
-	out, err := yaml.Marshal(raw)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, out, 0644)
 }

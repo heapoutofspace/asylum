@@ -9,8 +9,8 @@
 - Sandbox rules file injected into containers via `.claude/rules/asylum-sandbox.md`, giving Claude awareness of available tools, kits, sandbox constraints, and Asylum version
 - Detailed Asylum reference doc mounted at `.claude/asylum-reference.md` for on-demand troubleshooting and config guidance
 - Host IP accessible inside containers via `host.docker.internal` (`--add-host`)
-- Kit dependencies: kits can declare `Deps` on other kits (validated with warnings at resolve time)
-- Default-on kits: `github`, `openspec`, and `shell` are active unless explicitly disabled with `disabled: true`
+- Kit dependencies: kits can declare `Deps` on other kits (auto-activated at resolve time)
+- Default-on kits: `shell`, `node`, and `title` are active unless explicitly disabled with `disabled: true`
 - New `github` kit: GitHub CLI (gh) extracted from core Dockerfile
 - New `openspec` kit: OpenSpec CLI extracted from node kit, depends on node
 - New `shell` kit: oh-my-zsh, tmux config, direnv hooks, terminal size handling extracted from Dockerfile tail
@@ -21,6 +21,8 @@
 - `selfupdate` accepted as alias for `self-update`
 
 ### Fixed
+- Global config migration now produces full documented default config with all kits
+- Docker kit no longer duplicates GPG key setup already done by core Dockerfile
 - Crash with "unknown kit apt" when config contains apt packages or tab-title settings
 - E2e test suite with echo agent for full binary lifecycle testing
 - `internal/term` package consolidating shared `ShellQuote` and `IsTerminal` helpers

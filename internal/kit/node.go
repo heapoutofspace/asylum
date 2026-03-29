@@ -6,6 +6,7 @@ func init() {
 	Register(&Kit{
 		Name:        "node",
 		Description: "Node.js global development packages",
+		DefaultOn:   true,
 		DockerSnippet: `# Install Node.js global packages
 RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && \
     npm install -g \

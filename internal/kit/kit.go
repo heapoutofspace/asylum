@@ -106,18 +106,27 @@ func Resolve(names []string, disabled map[string]bool) ([]*Kit, error) {
 		}
 	}
 
-	// Validate dependencies
+	// Auto-activate dependencies
 	activeSet := map[string]bool{}
 	for _, k := range result {
-		// Extract top-level name from "parent/child"
 		top, _, _ := strings.Cut(k.Name, "/")
 		activeSet[top] = true
 	}
 	for _, k := range result {
 		for _, dep := range k.Deps {
-			if !activeSet[dep] {
-				log.Warn("kit %q requires the %q kit which is not active", k.Name, dep)
+			if activeSet[dep] {
+				continue
 			}
+			depKit, ok := registry[dep]
+			if !ok || disabled[dep] {
+				log.Warn("kit %q requires %q which is not available", k.Name, dep)
+				continue
+			}
+			add(depKit)
+			for _, sub := range sortedSubKeys(depKit) {
+				add(depKit.SubKits[sub])
+			}
+			activeSet[dep] = true
 		}
 	}
 

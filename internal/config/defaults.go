@@ -45,10 +45,12 @@ kits:
     # packages:          # npm packages installed globally
     #   - turbo
 
+  github:              # GitHub CLI (gh)
+  openspec:            # OpenSpec CLI (requires node)
+
   # Default-on kits (active even without config; disable with "disabled: true")
-  # github:             # GitHub CLI (gh)
-  # openspec:           # OpenSpec CLI (requires node)
   # shell:              # oh-my-zsh, tmux, direnv hooks
+  # title:              # Terminal tab title configuration
 
   # apt:                # System packages installed via apt-get
   #   packages:
