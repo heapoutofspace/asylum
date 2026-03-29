@@ -56,7 +56,7 @@ func main() {
 		fmt.Print(versionString(flags.Short))
 		return
 	case "cleanup":
-		runCleanup()
+		runCleanup(flags.All)
 		return
 	case "ssh-init":
 		if err := ssh.Init(); err != nil {
@@ -325,6 +325,7 @@ type cliFlags struct {
 	Help    bool
 	Version bool
 	Short   bool
+	All            bool
 	Admin          bool
 	Dev            bool
 	SkipOnboarding bool
@@ -411,6 +412,10 @@ func parseArgs(args []string) (cliFlags, string, []string, error) {
 		case arg == "--cleanup":
 			flags.Cleanup = true
 			i++
+			if i < len(args) && args[i] == "--all" {
+				flags.All = true
+				i++
+			}
 		case arg == "--skip-onboarding":
 			flags.SkipOnboarding = true
 			i++
@@ -438,8 +443,13 @@ func parseArgs(args []string) (cliFlags, string, []string, error) {
 		case arg == "cleanup":
 			subcommand = "cleanup"
 			i++
-			if i < len(args) {
-				return cliFlags{}, "", nil, fmt.Errorf("unexpected argument %q after cleanup", args[i])
+			for i < len(args) {
+				if args[i] == "--all" {
+					flags.All = true
+					i++
+				} else {
+					return cliFlags{}, "", nil, fmt.Errorf("unknown flag %q for cleanup (only --all is supported)", args[i])
+				}
 			}
 		case arg == "shell":
 			subcommand = "shell"
@@ -588,26 +598,37 @@ func resolveMode(subcommand string, admin bool) container.Mode {
 	}
 }
 
-func runCleanup() {
-	log.Info("removing asylum images and volumes...")
+func runCleanup(all bool) {
+	if all {
+		runCleanupAll()
+		return
+	}
+	runCleanupProject()
+}
 
-	var errs int
-	if err := docker.RemoveImages("asylum:latest"); err != nil {
-		log.Error("remove asylum:latest: %v", err)
-		errs++
+func runCleanupProject() {
+	projectDir, err := filepath.Abs(".")
+	if err != nil {
+		log.Error("resolve project dir: %v", err)
+		log.Info("use 'asylum cleanup --all' to remove all asylum resources")
+		return
 	}
 
-	if imgs, err := docker.ListImages("asylum:proj-*"); err != nil {
-		log.Error("list project images: %v", err)
-		errs++
-	} else if len(imgs) > 0 {
-		if err := docker.RemoveImages(imgs...); err != nil {
-			log.Error("remove project images: %v", err)
+	cname := container.ContainerName(projectDir)
+	log.Info("cleaning up project %s (container %s)...", filepath.Base(projectDir), cname)
+
+	var errs int
+
+	// Remove container (ignore error if not exists)
+	if docker.IsRunning(cname) {
+		if err := docker.RemoveContainer(cname); err != nil {
+			log.Error("remove container: %v", err)
 			errs++
 		}
 	}
 
-	if vols, err := docker.ListVolumes("asylum-"); err != nil {
+	// Remove volumes prefixed with container name
+	if vols, err := docker.ListVolumes(cname + "-"); err != nil {
 		log.Error("list volumes: %v", err)
 		errs++
 	} else if len(vols) > 0 {
@@ -617,22 +638,91 @@ func runCleanup() {
 		}
 	}
 
+	// Remove project data dir
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Error("home dir: %v", err)
+		errs++
+	} else {
+		projDir := filepath.Join(home, ".asylum", "projects", cname)
+		if _, err := os.Stat(projDir); err == nil {
+			ports.ReleaseContainer(cname)
+			if err := os.RemoveAll(projDir); err != nil {
+				log.Error("remove project data: %v", err)
+				errs++
+			}
+		}
+	}
+
+	if errs == 0 {
+		log.Success("project cleaned up")
+	} else {
+		log.Warn("partially cleaned up (see errors above)")
+	}
+}
+
+func runCleanupAll() {
+	if !term.IsTerminal() {
+		log.Error("cleanup --all requires a terminal for confirmation")
+		return
+	}
+
+	// Enumerate resources
+	var images []string
+	if imgs, err := docker.ListImages("asylum:proj-*"); err == nil {
+		images = append(images, imgs...)
+	}
+	images = append(images, "asylum:latest")
+
+	volumes, _ := docker.ListVolumes("asylum-")
+
+	fmt.Println("The following resources will be removed:")
+	fmt.Println()
+	fmt.Println("  Images:")
+	for _, img := range images {
+		fmt.Printf("    %s\n", img)
+	}
+	if len(volumes) > 0 {
+		fmt.Println()
+		fmt.Println("  Volumes:")
+		for _, vol := range volumes {
+			fmt.Printf("    %s\n", vol)
+		}
+	}
+	fmt.Println()
+
+	fmt.Print("Proceed? (y/N) ")
+	var answer string
+	fmt.Scanln(&answer)
+	if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+		log.Info("aborted")
+		return
+	}
+
+	var errs int
+	if err := docker.RemoveImages(images...); err != nil {
+		log.Error("remove images: %v", err)
+		errs++
+	}
+
+	if len(volumes) > 0 {
+		if err := docker.RemoveVolumes(volumes...); err != nil {
+			log.Error("remove volumes: %v", err)
+			errs++
+		}
+	}
+
 	switch {
 	case errs == 0:
 		log.Success("images and volumes removed")
-	case errs < 3:
+	case errs < 2:
 		log.Warn("partially cleaned up (see errors above)")
 	default:
 		log.Warn("cleanup failed (see errors above)")
 	}
 
-	if !term.IsTerminal() {
-		log.Warn("skipping cache removal prompt (not a terminal)")
-		return
-	}
-
 	fmt.Print("Remove cached data (~/.asylum/cache/ and ~/.asylum/projects/)? (y/N) ")
-	var answer string
+	answer = ""
 	fmt.Scanln(&answer)
 
 	if strings.ToLower(strings.TrimSpace(answer)) == "y" {
@@ -766,7 +856,8 @@ Usage:
   asylum [flags] shell          Interactive zsh shell
   asylum [flags] shell --admin  Admin shell with sudo notice
   asylum [flags] run <cmd>      Run command in container
-  asylum cleanup                Remove Asylum images and cached data
+  asylum cleanup                Remove current project's container, volumes, and data
+  asylum cleanup --all          Remove all Asylum images, volumes, and cached data
   asylum version [--short]      Show version
   asylum ssh-init               Initialize SSH directory
   asylum self-update [version]  Update to latest (or specific) version

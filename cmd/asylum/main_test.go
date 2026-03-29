@@ -155,9 +155,25 @@ func TestParseArgs(t *testing.T) {
 			wantSub: "cleanup",
 		},
 		{
+			name:      "cleanup command with all flag",
+			args:      []string{"cleanup", "--all"},
+			wantSub:   "cleanup",
+			wantFlags: cliFlags{All: true},
+		},
+		{
+			name:    "cleanup command unknown flag errors",
+			args:    []string{"cleanup", "--unknown"},
+			wantErr: true,
+		},
+		{
 			name:    "cleanup command extra arg errors",
 			args:    []string{"cleanup", "extra"},
 			wantErr: true,
+		},
+		{
+			name:      "cleanup flag alias with all",
+			args:      []string{"--cleanup", "--all"},
+			wantFlags: cliFlags{Cleanup: true, All: true},
 		},
 
 		// -- separator
@@ -324,6 +340,11 @@ func TestParseArgs(t *testing.T) {
 		},
 
 		// strict: unknown flags error
+		{
+			name:    "all without cleanup errors",
+			args:    []string{"--all"},
+			wantErr: true,
+		},
 		{
 			name:    "unknown flag errors",
 			args:    []string{"--bogus"},

@@ -3,10 +3,12 @@
 ## Unreleased
 
 ### Changed
+- `cleanup` now scopes to the current project by default (removes container, volumes, and project data for the current directory only)
 - `cleanup` and `version` are now proper subcommands (`asylum cleanup`, `asylum version`); `--cleanup` and `--version` flags kept as aliases
 - Kit activation tiers: `TierAlwaysOn` (shell, node, title), `TierDefault` (docker, java, etc.), `TierOptIn` (apt) replace the boolean `DefaultOn`
 
 ### Added
+- `cleanup --all` for global cleanup (all images, volumes, cached data) with a confirmation prompt showing exactly what will be deleted
 - Documentation site built with MkDocs Material, deployed to GitHub Pages via `.github/workflows/docs.yml`
 - Structured docs pages for commands, configuration, kits, concepts, and development
 - New `ports` kit (default-on): automatically allocates and forwards a range of high ports per project, with global tracking to prevent collisions
