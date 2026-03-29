@@ -197,6 +197,8 @@ func (c Config) OnboardingEnabled(kitName string) bool {
 }
 
 // KitCredentialMode returns the credential mode for the named kit.
+// Returns "" if never configured, "none" if explicitly declined,
+// "auto" for automatic credentials, or "explicit" for a user-provided list.
 func (c Config) KitCredentialMode(kitName string) string {
 	kc := c.KitOption(kitName)
 	if kc == nil || kc.Credentials == nil {
@@ -208,7 +210,7 @@ func (c Config) KitCredentialMode(kitName string) string {
 	if kc.Credentials.Explicit != nil {
 		return "explicit"
 	}
-	return ""
+	return "none"
 }
 
 // KitCredentialExplicit returns the explicit credential identifiers for the named kit.

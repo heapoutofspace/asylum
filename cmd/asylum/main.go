@@ -986,22 +986,35 @@ func runOnboarding(cfg *config.Config, a agent.Agent, allKits []*kit.Kit, home s
 		})
 		appliers = append(appliers, func(result tui.StepResult) {
 			cfgPath := filepath.Join(home, ".asylum", "config.yaml")
+			selected := map[int]bool{}
 			for _, idx := range result.MultiIdx {
-				parent, _, _ := strings.Cut(credKits[idx].Name, "/")
-				if err := config.SetKitCredentials(cfgPath, parent, "auto"); err != nil {
-					log.Error("save credential config: %v", err)
-				}
+				selected[idx] = true
 			}
-			// Reload the credentials into in-memory config
-			for _, idx := range result.MultiIdx {
-				parent, _, _ := strings.Cut(credKits[idx].Name, "/")
-				if cfg.Kits == nil {
-					cfg.Kits = map[string]*config.KitConfig{}
+			for i, k := range credKits {
+				parent, _, _ := strings.Cut(k.Name, "/")
+				if selected[i] {
+					if err := config.SetKitCredentials(cfgPath, parent, "auto"); err != nil {
+						log.Error("save credential config: %v", err)
+					}
+					if cfg.Kits == nil {
+						cfg.Kits = map[string]*config.KitConfig{}
+					}
+					if cfg.Kits[parent] == nil {
+						cfg.Kits[parent] = &config.KitConfig{}
+					}
+					cfg.Kits[parent].Credentials = &config.Credentials{Auto: true}
+				} else if cfg.KitCredentialMode(parent) == "" {
+					if err := config.SetKitCredentials(cfgPath, parent, "false"); err != nil {
+						log.Error("save credential config: %v", err)
+					}
+					if cfg.Kits == nil {
+						cfg.Kits = map[string]*config.KitConfig{}
+					}
+					if cfg.Kits[parent] == nil {
+						cfg.Kits[parent] = &config.KitConfig{}
+					}
+					cfg.Kits[parent].Credentials = &config.Credentials{}
 				}
-				if cfg.Kits[parent] == nil {
-					cfg.Kits[parent] = &config.KitConfig{}
-				}
-				cfg.Kits[parent].Credentials = &config.Credentials{Auto: true}
 			}
 		})
 	}

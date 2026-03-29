@@ -251,7 +251,7 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 		// Sub-kits (e.g. java/maven) check the parent kit's config.
 		kitName, _, _ := strings.Cut(k.Name, "/")
 		mode := opts.Config.KitCredentialMode(kitName)
-		if mode == "" {
+		if mode == "" || mode == "none" {
 			continue
 		}
 		credMode := kit.CredentialAuto
