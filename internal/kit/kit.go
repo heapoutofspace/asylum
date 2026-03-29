@@ -24,6 +24,7 @@ type Kit struct {
 	SubKits           map[string]*Kit
 	Deps              []string // kit names this kit depends on
 	DefaultOn         bool     // active unless explicitly disabled
+	ConfigSnippet     string   // YAML snippet for default config (indented at 2 spaces under kits:)
 }
 
 var registry = map[string]*Kit{}
@@ -227,6 +228,32 @@ func AssembleBannerLines(kits []*Kit) string {
 				b.WriteByte('\n')
 			}
 		}
+	}
+	return b.String()
+}
+
+// AssembleConfigSnippets returns all registered kits' ConfigSnippets in sorted
+// order, with commented-out snippets grouped after active ones.
+func AssembleConfigSnippets() string {
+	var active, commented strings.Builder
+	for _, name := range All() {
+		k := registry[name]
+		if k.ConfigSnippet == "" {
+			continue
+		}
+		trimmed := strings.TrimSpace(k.ConfigSnippet)
+		if strings.HasPrefix(trimmed, "#") {
+			commented.WriteString(k.ConfigSnippet)
+		} else {
+			active.WriteString("\n")
+			active.WriteString(k.ConfigSnippet)
+		}
+	}
+	var b strings.Builder
+	b.WriteString(active.String())
+	if commented.Len() > 0 {
+		b.WriteString("\n  # Default-on kits (active even without config; disable with \"disabled: true\")\n")
+		b.WriteString(commented.String())
 	}
 	return b.String()
 }

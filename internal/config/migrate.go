@@ -51,7 +51,7 @@ func NeedsMigration(path string) bool {
 // MigrateV1ToV2 reads a config file, transforms v1 fields to v2 structure,
 // and writes back. Creates a .backup before modifying.
 //
-// Global configs start from defaultConfig (preserving comments and all kits),
+// Global configs start from DefaultConfig() (preserving comments and all kits),
 // with user values overlaid. Project configs transform v1 fields in place.
 func MigrateV1ToV2(path string) error {
 	data, err := os.ReadFile(path)
@@ -95,7 +95,7 @@ func migrateGlobalConfig(path string, data []byte) error {
 	}
 
 	// Start from the documented default config
-	result := defaultConfig
+	result := DefaultConfig()
 
 	// Overlay user's non-default scalar values
 	if user.ReleaseChannel != "" && user.ReleaseChannel != "stable" {

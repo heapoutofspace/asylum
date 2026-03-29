@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -208,6 +209,35 @@ func TestAssembleRulesSnippets_Empty(t *testing.T) {
 	got := AssembleRulesSnippets(nil)
 	if got != "" {
 		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+func TestAssembleConfigSnippets(t *testing.T) {
+	cleanup := setupTestRegistry()
+	defer cleanup()
+
+	registry["alpha"].ConfigSnippet = "  alpha:\n"
+	Register(&Kit{Name: "commented", ConfigSnippet: "  # commented:\n"})
+	defer delete(registry, "commented")
+
+	got := AssembleConfigSnippets()
+
+	// Active snippets come first
+	if !strings.Contains(got, "  alpha:\n") {
+		t.Error("expected active snippet for alpha")
+	}
+	// Commented snippets come after the default-on header
+	if !strings.Contains(got, "# Default-on kits") {
+		t.Error("expected default-on header")
+	}
+	if !strings.Contains(got, "  # commented:\n") {
+		t.Error("expected commented snippet")
+	}
+	// Active comes before commented
+	alphaIdx := strings.Index(got, "alpha:")
+	commentIdx := strings.Index(got, "# commented:")
+	if alphaIdx > commentIdx {
+		t.Error("active snippets should come before commented snippets")
 	}
 }
 

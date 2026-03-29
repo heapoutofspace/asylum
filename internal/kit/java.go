@@ -4,6 +4,13 @@ func init() {
 	Register(&Kit{
 		Name:        "java",
 		Description: "Java via mise with JDK 17/21/25",
+		ConfigSnippet: `  java:
+    versions:
+      - 17
+      - 21
+      - 25
+    default-version: 21
+`,
 		DockerSnippet: `# Install Java versions via mise
 RUN ~/.local/bin/mise install java@17 java@21 java@25 && \
     ~/.local/bin/mise use --global java@21

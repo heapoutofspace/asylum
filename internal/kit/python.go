@@ -4,6 +4,12 @@ func init() {
 	Register(&Kit{
 		Name:        "python",
 		Description: "Python tools via uv",
+		ConfigSnippet: `  python:
+    # versions:
+    #   - 3.14
+    # packages:          # Python tools installed via uv
+    #   - ansible
+`,
 		DockerSnippet: `# Install Python build dependencies
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -1,8 +1,12 @@
 package config
 
-import "os"
+import (
+	"os"
 
-const defaultConfig = `version: "0.2"
+	"github.com/inventage-ai/asylum/internal/kit"
+)
+
+const configHeader = `version: "0.2"
 
 # Release channel for self-update (stable, dev)
 release-channel: stable
@@ -21,52 +25,9 @@ agents:
 # Kits configure language toolchains and tools installed in the container.
 # A kit is active when its key is present (even with no options).
 # Comment out or remove a kit to disable it entirely.
-kits:
-  docker:               # Docker-in-Docker support
+kits:`
 
-  java:
-    versions:
-      - 17
-      - 21
-      - 25
-    default-version: 21
-
-  python:
-    # versions:
-    #   - 3.14
-    # packages:          # Python tools installed via uv
-    #   - ansible
-
-  node:
-    shadow-node-modules: true
-    onboarding: false
-    # versions:
-    #   - 24
-    # packages:          # npm packages installed globally
-    #   - turbo
-
-  github:              # GitHub CLI (gh)
-  openspec:            # OpenSpec CLI (requires node)
-
-  # Default-on kits (active even without config; disable with "disabled: true")
-  # shell:              # oh-my-zsh, tmux, direnv hooks
-  # title:              # Terminal tab title configuration
-
-  # apt:                # System packages installed via apt-get
-  #   packages:
-  #     - imagemagick
-  #     - ffmpeg
-
-  # title:
-  #   # Terminal tab title template
-  #   # Placeholders: {project}, {agent}, {mode}
-  #   tab-title: "🤖 {project}"
-  #   allow-agent-terminal-title: false
-
-  # shell:
-  #   build:             # Custom commands run at image build time
-  #     - "curl -fsSL https://example.com/install.sh | sh"
-
+const configFooter = `
 # Port forwarding (host:container or just port for same on both sides)
 # ports:
 #   - "3000"
@@ -84,6 +45,12 @@ kits:
 #   NODE_ENV: development
 `
 
+// DefaultConfig returns the full default config assembled from the header,
+// kit ConfigSnippets, and footer.
+func DefaultConfig() string {
+	return configHeader + kit.AssembleConfigSnippets() + configFooter
+}
+
 // WriteDefaults writes the default config to the given path if it doesn't
 // already exist. It uses O_CREATE|O_EXCL to avoid a TOCTOU race.
 func WriteDefaults(path string) error {
@@ -95,6 +62,6 @@ func WriteDefaults(path string) error {
 		return err
 	}
 	defer f.Close()
-	_, err = f.WriteString(defaultConfig)
+	_, err = f.WriteString(DefaultConfig())
 	return err
 }

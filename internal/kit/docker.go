@@ -4,6 +4,8 @@ func init() {
 	Register(&Kit{
 		Name:        "docker",
 		Description: "Docker-in-Docker support",
+		ConfigSnippet: `  docker:               # Docker-in-Docker support
+`,
 		DockerSnippet: `# Install Docker engine (repo already configured by core)
 USER root
 RUN apt-get update && \

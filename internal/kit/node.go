@@ -7,6 +7,14 @@ func init() {
 		Name:        "node",
 		Description: "Node.js global development packages",
 		DefaultOn:   true,
+		ConfigSnippet: `  node:
+    shadow-node-modules: true
+    onboarding: false
+    # versions:
+    #   - 24
+    # packages:          # npm packages installed globally
+    #   - turbo
+`,
 		DockerSnippet: `# Install Node.js global packages
 RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && \
     npm install -g \
