@@ -304,6 +304,7 @@ func AssembleConfigSnippets() string {
 		}
 		trimmed := strings.TrimSpace(k.ConfigSnippet)
 		if strings.HasPrefix(trimmed, "#") {
+			commented.WriteString("\n")
 			commented.WriteString(k.ConfigSnippet)
 		} else {
 			active.WriteString("\n")
@@ -313,7 +314,6 @@ func AssembleConfigSnippets() string {
 	var b strings.Builder
 	b.WriteString(active.String())
 	if commented.Len() > 0 {
-		b.WriteString("\n")
 		b.WriteString(commented.String())
 	}
 	return b.String()
