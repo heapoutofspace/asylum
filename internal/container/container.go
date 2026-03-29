@@ -656,6 +656,20 @@ func sessionCounterPath(containerName string) (string, error) {
 	return filepath.Join(dir, "sessions"), nil
 }
 
+// SessionCount returns the current session count without modifying it.
+func SessionCount(containerName string) int {
+	path, err := sessionCounterPath(containerName)
+	if err != nil {
+		return 0
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0
+	}
+	n, _ := strconv.Atoi(strings.TrimSpace(string(data)))
+	return n
+}
+
 // IncrementSessions atomically increments the session counter and returns the new value.
 func IncrementSessions(containerName string) (int, error) {
 	path, err := sessionCounterPath(containerName)

@@ -184,6 +184,22 @@ func main() {
 	newSession := flags.New
 	freshContainer := false
 
+	// If --rebuild requested but container is already running, ask to kill it
+	if flags.Rebuild && docker.IsRunning(cname) {
+		sessions := container.SessionCount(cname)
+		msg := "Container is running. Kill it and rebuild?"
+		if sessions > 0 {
+			msg = fmt.Sprintf("Container is running (%d active session(s)). Kill it and rebuild?", sessions)
+		}
+		confirmed, err := tui.Confirm(msg, false)
+		if err != nil {
+			die("aborted")
+		}
+		if confirmed {
+			docker.RemoveContainer(cname)
+		}
+	}
+
 	// If no container running, build images and start one detached
 	if !docker.IsRunning(cname) {
 		// Prompt for config isolation if not set (Claude agent only for now)
