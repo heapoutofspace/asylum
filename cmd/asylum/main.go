@@ -188,8 +188,10 @@ func main() {
 	if flags.Rebuild && docker.IsRunning(cname) {
 		sessions := container.SessionCount(cname)
 		msg := "Container is running. Kill it and rebuild?"
-		if sessions > 0 {
-			msg = fmt.Sprintf("Container is running (%d active session(s)). Kill it and rebuild?", sessions)
+		if sessions == 1 {
+			msg = "Container is running (1 active session). Kill it and rebuild?"
+		} else if sessions > 1 {
+			msg = fmt.Sprintf("Container is running (%d active sessions). Kill it and rebuild?", sessions)
 		}
 		confirmed, err := tui.Confirm(msg, false)
 		if err != nil {
