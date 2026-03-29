@@ -12,35 +12,55 @@ This project uses [OpenSpec](https://openspec.dev) for structured change managem
 - Cross-compiled for `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`
 - Shells out to Docker CLI via `os/exec` and `syscall.Exec` (process replacement)
 - Layered YAML config: `~/.asylum/config.yaml` → `$project/.asylum` → `$project/.asylum.local` → CLI flags
-- Embedded assets (Dockerfile, entrypoint.sh) via `go:embed`
+- Embedded assets (Dockerfile.core/tail, entrypoint.core/tail) via `go:embed`
 - Manual CLI argument parsing with passthrough semantics (unknown flags forwarded to agents)
-- One external dependency: `gopkg.in/yaml.v3`
+- Kit system: modular, composable tooling profiles (languages, tools, services) that inject Dockerfile/entrypoint/config/rules snippets
+- TUI wizard (bubbletea) for first-run setup and kit selection
 
 ### Project Structure
 
 ```
 cmd/asylum/main.go          CLI entry point, argument parsing, dispatch
 internal/
-  agent/                    Agent interface + Claude/Gemini/Codex implementations
+  agent/                    Agent interface + implementations (Claude/Gemini/Codex/OpenCode/Echo)
+                            Agent install system for Dockerfile snippets
   config/                   Layered YAML config loading, merging, volume parsing
+                            Config migration (v1→v2), kit sync, state tracking, defaults
   container/                Docker run arg assembly, volume/env/port orchestration
   docker/                   Thin Docker CLI wrapper (build, inspect, prune)
+  firstrun/                 First-run wizard (kit selection, agent config seeding)
   image/                    Two-tier image management with hash-based rebuild detection
+  kit/                      Kit system: modular tooling profiles (java, node, python, docker, etc.)
+                            Each kit contributes Dockerfile/entrypoint/config/rules snippets
   log/                      Colored terminal output (info/success/warn/error/build)
+  onboarding/               In-container post-start tasks (e.g. npm install) with state tracking
+  ports/                    Host port allocation registry (file-locked, per-project)
+  selfupdate/               Self-update from GitHub releases (stable + dev channels)
   ssh/                      SSH directory setup and key generation
+  term/                     Terminal detection and shell quoting
+  tui/                      Terminal UI components (wizard, select, multiselect, confirm)
 assets/
-  Dockerfile                Container image definition (embedded via go:embed)
-  entrypoint.sh             Container startup script (embedded via go:embed)
+  Dockerfile.core           Base Dockerfile template (embedded via go:embed)
+  Dockerfile.tail           Dockerfile suffix appended after kit snippets
+  entrypoint.core           Base entrypoint script template
+  entrypoint.tail           Entrypoint suffix appended after kit snippets
+  asylum-reference.md       In-container reference documentation
   assets.go                 go:embed declarations
+e2e/                        End-to-end tests (Docker-based, separate from integration/)
 ```
 
 ### Key Behaviors
 
-- Agent config is seeded from host on first run (`~/.claude` → `~/.asylum/agents/claude/`), but resume is skipped for that first session since seeded data doesn't represent a container session.
-- Base image rebuild invalidates all project images (the `baseRebuilt` flag cascades to `EnsureProject`).
+- **First-run wizard** (`firstrun/`) guides kit selection and agent config seeding on first use. Agent config is seeded from host (`~/.claude` → `~/.asylum/agents/claude/`), but resume is skipped for that first session since seeded data doesn't represent a container session.
+- **Two-tier images**: a base image (shared across projects, kit-driven) and per-project images (project-specific packages, kits). Base image rebuild invalidates all project images (`baseRebuilt` flag cascades to `EnsureProject`).
+- **Kit-driven image assembly**: Dockerfile and entrypoint are assembled from core templates + kit snippets + tail. Each kit registers Dockerfile, entrypoint, config, and rules snippets. Kits have tiers (global vs project-level).
+- **Config migration**: v1→v2 migration (`config/migrate.go`) handles schema evolution. New kits are detected and offered via `config/kitsync.go`.
+- **Port allocation**: `ports/` maintains a file-locked registry so each project gets non-overlapping host port ranges.
+- **Self-update**: checks GitHub releases for updates (stable and dev channels).
+- **Onboarding**: in-container tasks (e.g. `npm install`) run post-start with hash-based change detection to avoid redundant work.
 - Container names are deterministic: `asylum-<sha256(project_dir)[:12]>`.
 - Project directory is mounted at its real host path (not `/workspace`), preserving absolute paths.
-- **The entrypoint script (`entrypoint.sh`) must never install anything.** It configures the environment (PATH, mise, fnm, git, direnv) but all tool/package installation belongs in the Dockerfile (base or project image). Installing in the entrypoint adds latency to every container start and is not cached.
+- **The entrypoint script must never install anything.** It configures the environment (PATH, mise, fnm, git, direnv) but all tool/package installation belongs in the Dockerfile (base or project image). Installing in the entrypoint adds latency to every container start and is not cached.
 
 ## Code Style
 
@@ -85,10 +105,14 @@ If a log line explains what is happening, any comment above that line which esse
 - Test the important logic: config merging, volume shorthand parsing, session detection, command generation, hash computation. Don't test trivial getters.
 - Use `testdata/` directories for fixture files.
 - **Integration tests** (`integration/`) require Docker and are slow (each `docker run` against the 5.6GB image takes seconds). They are gated behind `-tags integration` and excluded from `go test ./...`. Only run them via `make test-integration` as a final check before merging — do not run them during iterative development.
+- **E2E tests** (`e2e/`) test full asylum workflows end-to-end with Docker. Also gated behind build tags.
 
 ## Dependencies
 
-Only `gopkg.in/yaml.v3` — everything else is standard library. ANSI colors are hand-rolled, CLI parsing is manual (to support passthrough semantics). Avoid adding dependencies unless they save significant effort.
+- `gopkg.in/yaml.v3` — config file parsing
+- `github.com/charmbracelet/bubbletea` + `lipgloss` — TUI wizard and interactive prompts
+
+CLI parsing is manual (to support passthrough semantics). Avoid adding dependencies unless they save significant effort.
 
 ## Changelog
 
@@ -101,6 +125,7 @@ To release, use the `/release` command (e.g., `/release 0.3.0`). It moves unrele
 - **CI** (`.github/workflows/ci.yml`): Runs `go test` and `go vet` on every push/PR to main, then builds all four targets.
 - **Release** (`.github/workflows/release.yml`): Triggered by version tags (`v*`). Builds binaries with version baked in and publishes them as GitHub release assets.
 - **Dev Release** (`.github/workflows/dev-release.yml`): Builds and publishes a rolling `dev` pre-release on every push to `main`.
+- **Docs** (`.github/workflows/docs.yml`): Publishes documentation on push to main.
 - **Install script** (`install.sh`): Detects OS/arch and downloads the correct binary from the latest GitHub release.
 
 ## What NOT to Do
