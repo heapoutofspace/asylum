@@ -98,6 +98,9 @@ func migrateGlobalConfig(path string, data []byte, kitSnippets string) error {
 	// Start from the documented default config
 	result := DefaultConfig(kitSnippets)
 
+	// Activate openspec — it was on by default in v1 but is opt-in in v2
+	result = strings.Replace(result, "  # openspec:", "  openspec:", 1)
+
 	// Overlay user's non-default scalar values
 	if user.ReleaseChannel != "" && user.ReleaseChannel != "stable" {
 		result = strings.Replace(result, "release-channel: stable", "release-channel: "+user.ReleaseChannel, 1)

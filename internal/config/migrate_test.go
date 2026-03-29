@@ -15,6 +15,7 @@ const testKitSnippets = `
     default-version: 21
   node:
     shadow-node-modules: true
+  # openspec:
   python:
 `
 
@@ -67,6 +68,11 @@ volumes:
 	}
 	if len(result.Volumes) == 0 || result.Volumes[0] != "~/.m2/settings.xml:ro" {
 		t.Errorf("volumes = %v, want [~/.m2/settings.xml:ro]", result.Volumes)
+	}
+
+	// openspec was on by default in v1, should be activated during migration
+	if _, ok := result.Kits["openspec"]; !ok {
+		t.Error("openspec should be activated during v1→v2 migration")
 	}
 
 	// All standard kits present from default config
