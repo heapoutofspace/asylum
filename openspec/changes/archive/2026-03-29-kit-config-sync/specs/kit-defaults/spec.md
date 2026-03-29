@@ -1,7 +1,7 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
-### Requirement: Always-on kits
-Kits with tier `TierAlwaysOn` SHALL be included in the resolved set when the user specifies explicit kits but does not mention the always-on kit, unless explicitly disabled.
+### Requirement: Default-on kits
+Kits with tier `TierAlwaysOn` SHALL be included in the resolved set when the user specifies explicit kits but does not mention the always-on kit, unless explicitly disabled. Kits with tier `TierDefault` are active only when present (uncommented) in the config.
 
 #### Scenario: Explicit kits plus always-on
 - **WHEN** config has `kits: {java: {}}` and the shell kit has tier `TierAlwaysOn`
@@ -33,14 +33,3 @@ Each kit SHALL declare an activation tier: `TierAlwaysOn` (active even without c
 #### Scenario: Opt-in tier
 - **WHEN** a kit has tier `TierOptIn`
 - **THEN** it is active only if the user explicitly adds it to their config
-
-### Requirement: Kit disabling
-A kit SHALL be disableable by setting `disabled: true` in its KitConfig. This overrides default-on behavior and can disable globally-configured kits at project level.
-
-#### Scenario: Disable global kit at project level
-- **WHEN** global config has `kits: {java: {}, github: {}}` and project config has `kits: {github: {disabled: true}}`
-- **THEN** java is active but github is not
-
-#### Scenario: Disabled kit not resolved
-- **WHEN** a kit has `disabled: true` in its KitConfig
-- **THEN** it is excluded from the resolved kit list and its DockerSnippet is not included

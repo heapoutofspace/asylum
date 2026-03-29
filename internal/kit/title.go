@@ -4,11 +4,12 @@ func init() {
 	Register(&Kit{
 		Name:        "title",
 		Description: "Terminal tab title and agent title configuration",
-		DefaultOn:   true,
+		Tier:        TierAlwaysOn,
 		ConfigSnippet: `  # title:              # Terminal tab title configuration
   #   # Placeholders: {project}, {agent}, {mode}
   #   tab-title: "🤖 {project}"
   #   allow-agent-terminal-title: false
 `,
+		ConfigComment: "title:              # Terminal tab title configuration\n  # Placeholders: {project}, {agent}, {mode}\n  tab-title: \"🤖 {project}\"\n  allow-agent-terminal-title: false",
 	})
 }

@@ -1,12 +1,16 @@
 package kit
 
-import "github.com/inventage-ai/asylum/internal/onboarding"
+import (
+	"github.com/inventage-ai/asylum/internal/onboarding"
+
+	"gopkg.in/yaml.v3"
+)
 
 func init() {
 	Register(&Kit{
 		Name:        "node",
 		Description: "Node.js global development packages",
-		DefaultOn:   true,
+		Tier:        TierAlwaysOn,
 		ConfigSnippet: `  node:
     shadow-node-modules: true
     onboarding: false
@@ -15,6 +19,13 @@ func init() {
     # packages:          # npm packages installed globally
     #   - turbo
 `,
+		ConfigNodes: configNodes("node", "", []*yaml.Node{
+			ScalarNode("shadow-node-modules", ""),
+			BoolNode(true),
+			ScalarNode("onboarding", ""),
+			BoolNode(false),
+		}),
+		ConfigComment: "versions:\n#   - 24\n# packages:          # npm packages installed globally\n#   - turbo",
 		DockerSnippet: `# Install Node.js global packages
 RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && \
     npm install -g \

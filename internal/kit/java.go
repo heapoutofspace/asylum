@@ -1,5 +1,7 @@
 package kit
 
+import "gopkg.in/yaml.v3"
+
 func init() {
 	Register(&Kit{
 		Name:        "java",
@@ -11,6 +13,13 @@ func init() {
       - 25
     default-version: 21
 `,
+		ConfigComment: "java:\n  versions:\n    - 17\n    - 21\n    - 25\n  default-version: 21",
+		ConfigNodes: configNodes("java", "", []*yaml.Node{
+			ScalarNode("versions", ""),
+			SeqNode("17", "21", "25"),
+			ScalarNode("default-version", ""),
+			IntNode(21),
+		}),
 		DockerSnippet: `# Install Java versions via mise
 RUN ~/.local/bin/mise install java@17 java@21 java@25 && \
     ~/.local/bin/mise use --global java@21

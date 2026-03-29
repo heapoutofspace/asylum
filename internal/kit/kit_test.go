@@ -282,7 +282,7 @@ func TestResolve_DefaultOnIncluded(t *testing.T) {
 	cleanup := setupTestRegistry()
 	defer cleanup()
 
-	Register(&Kit{Name: "defkit", DefaultOn: true})
+	Register(&Kit{Name: "defkit", Tier: TierAlwaysOn})
 	defer delete(registry, "defkit")
 
 	// Explicit kits should also include default-on
@@ -306,7 +306,7 @@ func TestResolve_DefaultOnExcludedWhenDisabled(t *testing.T) {
 	cleanup := setupTestRegistry()
 	defer cleanup()
 
-	Register(&Kit{Name: "defkit", DefaultOn: true})
+	Register(&Kit{Name: "defkit", Tier: TierAlwaysOn})
 	defer delete(registry, "defkit")
 
 	names := []string{"alpha"}
@@ -326,7 +326,7 @@ func TestResolve_DefaultOnNotAddedToEmpty(t *testing.T) {
 	cleanup := setupTestRegistry()
 	defer cleanup()
 
-	Register(&Kit{Name: "defkit", DefaultOn: true})
+	Register(&Kit{Name: "defkit", Tier: TierAlwaysOn})
 	defer delete(registry, "defkit")
 
 	// Empty slice = no kits, default-on NOT added

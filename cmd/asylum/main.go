@@ -72,6 +72,17 @@ func main() {
 
 	kitSnippets := kit.AssembleConfigSnippets()
 
+	// Sync new kits to config (detect newly registered kits, prompt, update config)
+	if subcommand != "self-update" {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			asylumDir := filepath.Join(home, ".asylum")
+			if _, err := config.SyncNewKits(asylumDir, term.IsTerminal()); err != nil {
+				log.Error("kit sync: %v", err)
+			}
+		}
+	}
+
 	if subcommand == "self-update" {
 		execPath, err := os.Executable()
 		if err != nil {

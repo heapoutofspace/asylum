@@ -10,6 +10,8 @@ func init() {
     # packages:          # Python tools installed via uv
     #   - ansible
 `,
+		ConfigNodes:   configNodes("python", "", nil),
+		ConfigComment: "versions:\n#   - 3.14\n# packages:          # Python tools installed via uv\n#   - ansible",
 		DockerSnippet: `# Install Python build dependencies
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \

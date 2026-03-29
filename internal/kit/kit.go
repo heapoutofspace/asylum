@@ -7,6 +7,17 @@ import (
 
 	"github.com/inventage-ai/asylum/internal/log"
 	"github.com/inventage-ai/asylum/internal/onboarding"
+
+	"gopkg.in/yaml.v3"
+)
+
+// Tier controls how a kit is activated and presented in the config.
+type Tier int
+
+const (
+	TierDefault  Tier = iota // active when present in config; added uncommented by default
+	TierAlwaysOn             // active even if absent from config
+	TierOptIn                // only active if user explicitly enables in config
 )
 
 // Kit groups all concerns for a tool or language: installation,
@@ -23,8 +34,10 @@ type Kit struct {
 	OnboardingTasks   []onboarding.Task
 	SubKits           map[string]*Kit
 	Deps              []string // kit names this kit depends on
-	DefaultOn         bool     // active unless explicitly disabled
-	ConfigSnippet     string   // YAML snippet for default config (indented at 2 spaces under kits:)
+	Tier              Tier              // activation tier (TierDefault, TierAlwaysOn, TierOptIn)
+	ConfigSnippet     string            // YAML snippet for default config (indented at 2 spaces under kits:)
+	ConfigNodes       []*yaml.Node      // structured key+value nodes for kits mapping (len 2: key, value)
+	ConfigComment     string            // comment text for opt-in/always-on kits shown in config
 }
 
 var registry = map[string]*Kit{}
@@ -32,6 +45,11 @@ var registry = map[string]*Kit{}
 // Register adds a top-level kit to the registry.
 func Register(k *Kit) {
 	registry[k.Name] = k
+}
+
+// Get returns a registered kit by name, or nil if not found.
+func Get(name string) *Kit {
+	return registry[name]
 }
 
 // All returns the names of all registered top-level kits in sorted order.
@@ -96,10 +114,10 @@ func Resolve(names []string, disabled map[string]bool) ([]*Kit, error) {
 		}
 	}
 
-	// Add default-on kits that weren't explicitly listed or disabled
+	// Add always-on kits that weren't explicitly listed or disabled
 	for _, name := range All() {
 		k := registry[name]
-		if k.DefaultOn && !seen[k.Name] && !disabled[k.Name] {
+		if k.Tier == TierAlwaysOn && !seen[k.Name] && !disabled[k.Name] {
 			add(k)
 			for _, sub := range sortedSubKeys(k) {
 				add(k.SubKits[sub])
@@ -230,6 +248,49 @@ func AssembleBannerLines(kits []*Kit) string {
 		}
 	}
 	return b.String()
+}
+
+// ScalarNode creates a yaml scalar node with an optional line comment.
+func ScalarNode(value, comment string) *yaml.Node {
+	n := &yaml.Node{Kind: yaml.ScalarNode, Value: value, Tag: "!!str"}
+	if comment != "" {
+		n.LineComment = comment
+	}
+	return n
+}
+
+// MappingNode creates a yaml mapping node from key-value pairs.
+func MappingNode(content ...*yaml.Node) *yaml.Node {
+	return &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: content}
+}
+
+// SeqNode creates a yaml sequence node from values.
+func SeqNode(values ...string) *yaml.Node {
+	content := make([]*yaml.Node, len(values))
+	for i, v := range values {
+		content[i] = &yaml.Node{Kind: yaml.ScalarNode, Value: v, Tag: "!!str"}
+	}
+	return &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq", Content: content}
+}
+
+// BoolNode creates a yaml scalar node with a boolean value.
+func BoolNode(v bool) *yaml.Node {
+	s := "false"
+	if v {
+		s = "true"
+	}
+	return &yaml.Node{Kind: yaml.ScalarNode, Value: s, Tag: "!!bool"}
+}
+
+// IntNode creates a yaml scalar node with an integer value.
+func IntNode(v int) *yaml.Node {
+	return &yaml.Node{Kind: yaml.ScalarNode, Value: fmt.Sprintf("%d", v), Tag: "!!int"}
+}
+
+// configNodes builds the standard [key, value] node pair for a kit's config entry.
+// If content is nil, the value is an empty mapping (displayed as `name:`).
+func configNodes(name, comment string, content []*yaml.Node) []*yaml.Node {
+	return []*yaml.Node{ScalarNode(name, comment), MappingNode(content...)}
 }
 
 // AssembleConfigSnippets returns all registered kits' ConfigSnippets in sorted

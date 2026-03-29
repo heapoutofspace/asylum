@@ -4,9 +4,12 @@
 
 ### Changed
 - `cleanup` and `version` are now proper subcommands (`asylum cleanup`, `asylum version`); `--cleanup` and `--version` flags kept as aliases
+- Kit activation tiers: `TierAlwaysOn` (shell, node, title), `TierDefault` (docker, java, etc.), `TierOptIn` (apt) replace the boolean `DefaultOn`
 
 ### Added
 - New `ports` kit (default-on): automatically allocates and forwards a range of high ports per project, with global tracking to prevent collisions
+- Kit config sync: new kits are detected on startup and inserted into existing `config.yaml` via `yaml.Node` tree manipulation (preserving comments and user edits)
+- Kit state tracking: `~/.asylum/state.json` tracks known kits; new kits trigger activation prompts in interactive mode
 - Sandbox rules file injected into containers via `.claude/rules/asylum-sandbox.md`, giving Claude awareness of available tools, kits, sandbox constraints, and Asylum version
 - Detailed Asylum reference doc mounted at `.claude/asylum-reference.md` for on-demand troubleshooting and config guidance
 - Host IP accessible inside containers via `host.docker.internal` (`--add-host`)

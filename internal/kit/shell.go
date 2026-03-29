@@ -4,12 +4,13 @@ func init() {
 	Register(&Kit{
 		Name:        "shell",
 		Description: "Shell configuration (oh-my-zsh, tmux, direnv hooks)",
-		DefaultOn:   true,
+		Tier:        TierAlwaysOn,
 		Tools:       []string{"tmux"},
 		ConfigSnippet: `  # shell:              # oh-my-zsh, tmux, direnv hooks
   #   build:             # Custom commands run at image build time
   #     - "curl -fsSL https://example.com/install.sh | sh"
 `,
+		ConfigComment: "shell:              # oh-my-zsh, tmux, direnv hooks\n  build:             # Custom commands run at image build time\n    - \"curl -fsSL https://example.com/install.sh | sh\"",
 		DockerSnippet: `# Install oh-my-zsh and setup PATH/fnm/mise for zsh
 # oh-my-zsh replaces .zshrc, so PATH must be re-added after install
 RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \

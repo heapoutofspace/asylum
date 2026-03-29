@@ -6,6 +6,8 @@ func init() {
 		Description: "Docker-in-Docker support",
 		ConfigSnippet: `  docker:               # Docker-in-Docker support
 `,
+		ConfigNodes:   configNodes("docker", "Docker-in-Docker support", nil),
+		ConfigComment: "docker:               # Docker-in-Docker support",
 		DockerSnippet: `# Install Docker engine (repo already configured by core)
 USER root
 RUN apt-get update && \
