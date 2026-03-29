@@ -27,6 +27,10 @@ theme:
     - search.highlight
     - content.code.copy
 
+extra:
+  version:
+    provider: mike
+
 markdown_extensions:
   - admonition
   - pymdownx.details

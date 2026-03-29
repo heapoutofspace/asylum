@@ -16,9 +16,13 @@ func init() {
 		ConfigComment: "packages:        # tree-sitter language grammars\n    #   - python\n    #   - typescript\n    #   - go",
 		DockerSnippet: `# Install cx
 RUN curl -sL https://raw.githubusercontent.com/ind-igo/cx/master/install.sh | sh
+RUN mkdir -p /tmp/asylum-kit-rules && cx skill > /tmp/asylum-kit-rules/cx.md || true
 `,
-		RulesSnippet: `### cx (cx kit)
-cx is installed for semantic code navigation. Commands: ` + "`cx overview <file>`" + ` for file table of contents, ` + "`cx symbols`" + ` to search symbols, ` + "`cx definition --name <sym>`" + ` for function bodies, ` + "`cx references --name <sym>`" + ` to find usages. Use ` + "`cx lang add <lang>`" + ` to add language support.
+		EntrypointSnippet: `# Mount cx rules file into agent rules directory
+if [ -s /tmp/asylum-kit-rules/cx.md ] && [ -d "$HOME/.claude/rules" ]; then
+    touch "$HOME/.claude/rules/cx.md"
+    sudo mount --bind /tmp/asylum-kit-rules/cx.md "$HOME/.claude/rules/cx.md"
+fi
 `,
 		BannerLines: `    echo "cx:        $(cx --version 2>/dev/null || echo 'not found')"
 `,

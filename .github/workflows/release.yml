@@ -24,3 +24,23 @@ jobs:
         with:
           generate_release_notes: true
           files: build/asylum-*
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: pip install mkdocs-material mike
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Deploy versioned docs
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          mike deploy "$VERSION" latest --update-aliases --push
+          mike set-default latest --push

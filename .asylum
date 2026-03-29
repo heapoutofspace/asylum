@@ -2,6 +2,5 @@ kits:
     apt:
         packages:
             - golang
-    docker: {}
 volumes:
     - ~/.asylum/bin:/home/claude/.asylum/bin

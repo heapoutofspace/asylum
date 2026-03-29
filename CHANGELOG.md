@@ -17,6 +17,7 @@
 ### Added
 - `cleanup --all` for global cleanup (all images, volumes, cached data) with a confirmation prompt showing exactly what will be deleted
 - Documentation site built with MkDocs Material, deployed to GitHub Pages via `.github/workflows/docs.yml`
+- Versioned docs with mike: version selector dropdown, `dev` channel updated on push to main, stable versions deployed on release tags with `latest` alias
 - Structured docs pages for commands, configuration, kits, concepts, and development
 - New `ast-grep` kit: installs ast-grep (`sg`) via npm for AST-based code search, linting, and rewriting
 - New `browser` kit: installs Chromium via Playwright for browser automation, with persistent cache volume

@@ -86,7 +86,7 @@ The generated rules file SHALL be mounted read-only into the container at `<proj
 - **THEN** the rules file SHALL be generated using those kits' rules snippets
 
 ### Requirement: Kit-provided rules snippets
-Each kit that installs tools or provides capabilities MUST populate `RulesSnippet` with a concise markdown description. At minimum, the docker, java, python, and node kits SHALL have rules snippets.
+Each kit that installs tools or provides capabilities MUST populate `RulesSnippet` with a concise markdown description, EXCEPT for kits that generate their own standalone rules files (e.g., cx). At minimum, the docker, java, python, and node kits SHALL have rules snippets.
 
 #### Scenario: Docker kit snippet
 - **WHEN** the docker kit is active
@@ -103,3 +103,8 @@ Each kit that installs tools or provides capabilities MUST populate `RulesSnippe
 #### Scenario: Python kit snippet
 - **WHEN** the python kit is active
 - **THEN** its rules snippet SHALL mention the available tools (black, ruff, mypy, pytest, poetry, etc.) and that `uv` manages packages
+
+#### Scenario: cx kit no longer contributes snippet
+- **WHEN** the cx kit is active
+- **THEN** its `RulesSnippet` SHALL be empty and the assembled `asylum-sandbox.md` SHALL NOT contain a cx-specific section
+- **AND** the cx tool SHALL still appear in the "Kit Tools" list via the `Tools` field

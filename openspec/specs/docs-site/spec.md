@@ -31,11 +31,15 @@ The `docs/` directory SHALL contain markdown pages for each section. Each comman
 - **THEN** it SHALL include: what the kit provides, how to enable/configure it, any sub-kits, config options, and relevant examples
 
 ### Requirement: GitHub Pages deployment
-A GitHub Actions workflow at `.github/workflows/docs.yml` SHALL build and deploy the docs site to GitHub Pages on push to main.
+A GitHub Actions workflow at `.github/workflows/docs.yml` SHALL deploy the `dev` version of the docs site to GitHub Pages using mike on push to main. The release workflow at `.github/workflows/release.yml` SHALL deploy stable versions using mike when a version tag is pushed.
 
-#### Scenario: Docs deploy on push
+#### Scenario: Dev docs deploy on push
 - **WHEN** a commit is pushed to main that changes files in `docs/` or `mkdocs.yml`
-- **THEN** the workflow builds the site and deploys it to the `gh-pages` branch
+- **THEN** the workflow deploys the `dev` version via `mike deploy dev --push`
+
+#### Scenario: Stable docs deploy on release
+- **WHEN** a version tag (`v*`) is pushed
+- **THEN** the release workflow deploys the docs as a stable version via `mike deploy <version> latest --update-aliases --push`
 
 #### Scenario: No deploy on unrelated changes
 - **WHEN** a commit is pushed to main that does not change `docs/` or `mkdocs.yml`

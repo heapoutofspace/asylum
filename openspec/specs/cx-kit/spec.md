@@ -11,11 +11,12 @@ The system SHALL register a `cx` kit via `init()` in `internal/kit/cx.go` with n
 - **THEN** the kit registry contains a `"cx"` entry with Tier set to TierOptIn and no Deps
 
 ### Requirement: cx installation via install script
-The kit SHALL provide a DockerSnippet that installs the cx CLI by downloading and running the install script from the cx repository. The installed binary SHALL be available on PATH.
+The kit SHALL provide a DockerSnippet that installs the cx CLI by downloading and running the install script from the cx repository. After installation, the snippet SHALL also run `cx skill` to generate the rules file at `/tmp/asylum-kit-rules/cx.md`. The installed binary SHALL be available on PATH.
 
-#### Scenario: cx installed in image
+#### Scenario: cx installed and rules generated in image
 - **WHEN** the cx kit is active and the Docker image is built
 - **THEN** the `cx` command is available on PATH inside the container
+- **AND** `/tmp/asylum-kit-rules/cx.md` contains the output of `cx skill`
 
 ### Requirement: cx config snippet with languages
 The kit SHALL provide a ConfigSnippet and ConfigNodes so that kit sync can add a `cx` entry to the user's config file. The config snippet SHALL include a commented-out `packages` list showing example language grammars (e.g., python, typescript, go).
@@ -50,9 +51,14 @@ The kit SHALL provide a BannerLines entry that prints the cx version in the welc
 - **THEN** the welcome banner includes a line showing the cx version
 
 ### Requirement: cx rules snippet
-The kit SHALL provide a RulesSnippet describing cx's capabilities for agents, including file overview, symbol search, definition lookup, and reference finding.
+The cx kit SHALL NOT populate the `RulesSnippet` field. Instead, the cx kit SHALL generate a standalone rules file via `cx skill` during the Docker build and place it in the agent's rules directory via the entrypoint. The kit SHALL retain its `Tools` field so that `cx` continues to appear in the aggregated "Kit Tools" list.
 
 #### Scenario: Rules file contains cx section
 - **WHEN** sandbox rules are assembled with cx kit active
-- **THEN** the rules file contains a section describing cx commands and their usage
+- **THEN** the assembled `asylum-sandbox.md` SHALL NOT contain a cx-specific rules snippet
+- **AND** the cx tool SHALL still appear in the "Kit Tools" section
+
+#### Scenario: Standalone cx rules file present
+- **WHEN** the container starts with cx kit active and `cx skill` succeeded during build
+- **THEN** a standalone `cx.md` rules file SHALL be bind-mounted into the agent's rules directory
 
