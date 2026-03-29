@@ -4,9 +4,12 @@
 
 [![CI](https://github.com/inventage-ai/asylum/actions/workflows/ci.yml/badge.svg)](https://github.com/inventage-ai/asylum/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/inventage-ai/asylum)](https://github.com/inventage-ai/asylum/releases)
+[![Docs](https://img.shields.io/badge/docs-asylum.inventage.ai-blue)](https://asylum.inventage.ai/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Asylum wraps Docker to give your AI coding agent a fully-equipped Linux environment with Python, Node.js, Java, Docker-in-Docker, and more. Containers are ephemeral, but caches, auth, shell history, and agent config persist across sessions. A single Go binary, cross-compiled for Linux and macOS (ARM and x86).
+
+**[Read the documentation &rarr;](https://asylum.inventage.ai/)**
 
 ## Install
 
@@ -135,7 +138,3 @@ git clone https://github.com/inventage-ai/asylum.git
 cd asylum
 make build
 ```
-
-## License
-
-MIT
