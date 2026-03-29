@@ -2,10 +2,35 @@
 
 ## Unreleased
 
+### Added
+- E2e test suite with echo agent for full binary lifecycle testing
+- `internal/term` package consolidating shared `ShellQuote` and `IsTerminal` helpers
+
+### Changed
+- Opencode installed via curl instead of `go install`
+- Agent env vars emitted before hardcoded container env vars (Docker last-wins ensures correct precedence)
+- Cleanup prompt skipped in non-interactive mode with a warning
+- Onboarding prompt skipped in non-interactive mode
+- Cleanup now preserves project directories with active sessions
+- `docker exec` only uses `-t` flag when stdin is a TTY (fixes non-interactive environments)
+
 ### Fixed
 - Broken terminal colors in macOS Terminal.app caused by hardcoded `COLORTERM=truecolor`; now inherited from host
 - `.tool-versions` Java version now correctly overrides global config but not project-local config
-- `ParseVolume` now rejects empty host path in two-part volume specs (e.g., `":container"`)
+- `ParseVolume` rejects empty host/container paths in all volume spec formats
+- `ParseVolume` validates mount options in 3+ part volume specs
+- Race condition in session counter file locking (read through locked fd)
+- Session counter underflow when increment fails no longer triggers premature container removal
+- Cyclic symlinks in `copyDir` no longer cause infinite recursion
+- Symlinks to regular files in `copyDir` now resolve to target contents instead of recreating potentially dangling links
+- Signal forwarding goroutine no longer leaks after docker process exits
+- Shell metacharacters in onboarding command arguments are now properly quoted
+- Env var values containing newlines are rejected instead of producing broken Docker flags
+- `WriteDefaults` uses O_EXCL to prevent TOCTOU race on first-run config creation
+- Self-update HTTP requests have a 60-second timeout (previously no timeout)
+- Self-update enforces Content-Length and 512MB size limit on downloads
+- Run commands with newlines or empty values are rejected during Dockerfile generation
+- Agent error message now lists all registered agents dynamically
 
 ## 0.5.0 — 2026-03-24
 
