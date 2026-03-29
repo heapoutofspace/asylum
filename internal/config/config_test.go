@@ -232,7 +232,7 @@ ports:
 `
 	os.WriteFile(filepath.Join(dir, ".asylum.local"), []byte(localConfig), 0644)
 
-	cfg, err := Load(dir, CLIFlags{})
+	cfg, err := Load(dir, CLIFlags{}, "")
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestToolVersionsJava(t *testing.T) {
 	t.Run("provides java version", func(t *testing.T) {
 		dir := t.TempDir()
 		os.WriteFile(filepath.Join(dir, ".tool-versions"), []byte("java 21.0.2\n"), 0644)
-		cfg, err := Load(dir, CLIFlags{})
+		cfg, err := Load(dir, CLIFlags{}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -269,7 +269,7 @@ func TestToolVersionsJava(t *testing.T) {
 	t.Run("CLI flag overrides", func(t *testing.T) {
 		dir := t.TempDir()
 		os.WriteFile(filepath.Join(dir, ".tool-versions"), []byte("java 21.0.2\n"), 0644)
-		cfg, err := Load(dir, CLIFlags{Java: "25"})
+		cfg, err := Load(dir, CLIFlags{Java: "25"}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -282,7 +282,7 @@ func TestToolVersionsJava(t *testing.T) {
 		dir := t.TempDir()
 		os.WriteFile(filepath.Join(dir, ".tool-versions"), []byte("java 21.0.2\n"), 0644)
 		os.WriteFile(filepath.Join(dir, ".asylum"), []byte("kits:\n  java:\n    default-version: \"17\"\n"), 0644)
-		cfg, err := Load(dir, CLIFlags{})
+		cfg, err := Load(dir, CLIFlags{}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -298,7 +298,7 @@ func TestToolVersionsJava(t *testing.T) {
 		os.MkdirAll(filepath.Join(homeDir, ".asylum"), 0755)
 		os.WriteFile(filepath.Join(homeDir, ".asylum", "config.yaml"), []byte("version: \"0.2\"\nkits:\n  java:\n    default-version: \"11\"\n"), 0644)
 		defer os.Remove(filepath.Join(homeDir, ".asylum", "config.yaml"))
-		cfg, err := Load(dir, CLIFlags{})
+		cfg, err := Load(dir, CLIFlags{}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -313,7 +313,7 @@ func TestLoadSkipsDirectoryAsConfig(t *testing.T) {
 	t.Setenv("HOME", homeDir)
 	os.MkdirAll(filepath.Join(homeDir, ".asylum"), 0755)
 
-	cfg, err := Load(homeDir, CLIFlags{})
+	cfg, err := Load(homeDir, CLIFlags{}, "")
 	if err != nil {
 		t.Fatalf("Load should skip directories, got error: %v", err)
 	}

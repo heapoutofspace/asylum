@@ -167,7 +167,7 @@ type Volume struct {
 	Options   string
 }
 
-func Load(projectDir string, flags CLIFlags) (Config, error) {
+func Load(projectDir string, flags CLIFlags, kitSnippets string) (Config, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return Config{}, fmt.Errorf("home dir: %w", err)
@@ -178,7 +178,7 @@ func Load(projectDir string, flags CLIFlags) (Config, error) {
 	// Load global config
 	globalPath := filepath.Join(home, ".asylum", "config.yaml")
 	if NeedsMigration(globalPath) {
-		if err := MigrateV1ToV2(globalPath); err != nil {
+		if err := MigrateV1ToV2(globalPath, kitSnippets); err != nil {
 			return Config{}, fmt.Errorf("migrate %s: %w", globalPath, err)
 		}
 	}
@@ -200,7 +200,7 @@ func Load(projectDir string, flags CLIFlags) (Config, error) {
 		filepath.Join(projectDir, ".asylum.local"),
 	} {
 		if NeedsMigration(path) {
-			if err := MigrateV1ToV2(path); err != nil {
+			if err := MigrateV1ToV2(path, kitSnippets); err != nil {
 				return Config{}, fmt.Errorf("migrate %s: %w", path, err)
 			}
 		}

@@ -9,6 +9,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const testKitSnippets = `
+  docker:
+  java:
+    default-version: 21
+  node:
+    shadow-node-modules: true
+  python:
+`
+
 func TestMigrateV1ToV2_GlobalConfig(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
@@ -24,7 +33,7 @@ volumes:
 		t.Fatal("should need migration")
 	}
 
-	if err := MigrateV1ToV2(path); err != nil {
+	if err := MigrateV1ToV2(path, testKitSnippets); err != nil {
 		t.Fatal(err)
 	}
 
@@ -91,7 +100,7 @@ agents:
 `
 	os.WriteFile(path, []byte(v1), 0644)
 
-	if err := MigrateV1ToV2(path); err != nil {
+	if err := MigrateV1ToV2(path, testKitSnippets); err != nil {
 		t.Fatal(err)
 	}
 
@@ -131,7 +140,7 @@ packages:
 		t.Fatal("should need migration (has features key)")
 	}
 
-	if err := MigrateV1ToV2(path); err != nil {
+	if err := MigrateV1ToV2(path, testKitSnippets); err != nil {
 		t.Fatal(err)
 	}
 

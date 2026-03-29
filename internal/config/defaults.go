@@ -1,10 +1,6 @@
 package config
 
-import (
-	"os"
-
-	"github.com/inventage-ai/asylum/internal/kit"
-)
+import "os"
 
 const configHeader = `version: "0.2"
 
@@ -47,13 +43,13 @@ const configFooter = `
 
 // DefaultConfig returns the full default config assembled from the header,
 // kit ConfigSnippets, and footer.
-func DefaultConfig() string {
-	return configHeader + kit.AssembleConfigSnippets() + configFooter
+func DefaultConfig(kitSnippets string) string {
+	return configHeader + kitSnippets + configFooter
 }
 
 // WriteDefaults writes the default config to the given path if it doesn't
-// already exist. It uses O_CREATE|O_EXCL to avoid a TOCTOU race.
-func WriteDefaults(path string) error {
+// already exist. kitSnippets is the assembled YAML from kit.AssembleConfigSnippets().
+func WriteDefaults(path, kitSnippets string) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	if err != nil {
 		if os.IsExist(err) {
@@ -62,6 +58,6 @@ func WriteDefaults(path string) error {
 		return err
 	}
 	defer f.Close()
-	_, err = f.WriteString(DefaultConfig())
+	_, err = f.WriteString(DefaultConfig(kitSnippets))
 	return err
 }

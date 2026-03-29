@@ -1,10 +1,9 @@
 package onboarding
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
-
-	"github.com/inventage-ai/asylum/internal/container"
 )
 
 var lockfiles = []struct {
@@ -25,8 +24,7 @@ func (NPMTask) Name() string { return "npm" }
 
 func (NPMTask) Detect(projectDir string) []Workload {
 	var workloads []Workload
-	for _, nm := range container.FindNodeModulesDirs(projectDir) {
-		dir := filepath.Dir(nm)
+	for _, dir := range findPackageJSONDirs(projectDir) {
 		for _, lf := range lockfiles {
 			lfPath := filepath.Join(dir, lf.file)
 			if _, err := os.Stat(lfPath); err == nil {
@@ -46,4 +44,31 @@ func (NPMTask) Detect(projectDir string) []Workload {
 		}
 	}
 	return workloads
+}
+
+// findPackageJSONDirs walks projectDir and returns directories containing
+// package.json files (skipping node_modules and other non-relevant dirs).
+func findPackageJSONDirs(projectDir string) []string {
+	skip := map[string]bool{
+		".git": true, ".venv": true, "__pycache__": true,
+		"vendor": true, "target": true, "dist": true,
+	}
+	var results []string
+	filepath.WalkDir(projectDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || !d.IsDir() {
+			return nil
+		}
+		name := d.Name()
+		if name == "node_modules" {
+			return filepath.SkipDir
+		}
+		if path != projectDir && skip[name] {
+			return filepath.SkipDir
+		}
+		if _, err := os.Stat(filepath.Join(path, "package.json")); err == nil {
+			results = append(results, path)
+		}
+		return nil
+	})
+	return results
 }

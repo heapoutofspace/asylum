@@ -53,7 +53,8 @@ func NeedsMigration(path string) bool {
 //
 // Global configs start from DefaultConfig() (preserving comments and all kits),
 // with user values overlaid. Project configs transform v1 fields in place.
-func MigrateV1ToV2(path string) error {
+// kitSnippets is only used for global config migration (passed to DefaultConfig).
+func MigrateV1ToV2(path, kitSnippets string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -68,7 +69,7 @@ func MigrateV1ToV2(path string) error {
 	}
 
 	if strings.HasSuffix(path, "config.yaml") {
-		return migrateGlobalConfig(path, data)
+		return migrateGlobalConfig(path, data, kitSnippets)
 	}
 	return migrateProjectConfig(path, data)
 }
@@ -76,7 +77,7 @@ func MigrateV1ToV2(path string) error {
 // migrateGlobalConfig transforms v1 fields, then overlays user customizations
 // onto the full default config. This preserves comments and ensures all kits
 // are present.
-func migrateGlobalConfig(path string, data []byte) error {
+func migrateGlobalConfig(path string, data []byte, kitSnippets string) error {
 	// First transform v1 fields into v2 structure
 	var raw map[string]any
 	if err := yaml.Unmarshal(data, &raw); err != nil {
@@ -95,7 +96,7 @@ func migrateGlobalConfig(path string, data []byte) error {
 	}
 
 	// Start from the documented default config
-	result := DefaultConfig()
+	result := DefaultConfig(kitSnippets)
 
 	// Overlay user's non-default scalar values
 	if user.ReleaseChannel != "" && user.ReleaseChannel != "stable" {

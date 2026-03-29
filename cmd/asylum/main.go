@@ -69,6 +69,8 @@ func main() {
 		die("resolve project dir: %v", err)
 	}
 
+	kitSnippets := kit.AssembleConfigSnippets()
+
 	if subcommand == "self-update" {
 		execPath, err := os.Executable()
 		if err != nil {
@@ -80,7 +82,7 @@ func main() {
 			}
 			return
 		}
-		cfg, err := config.Load(projectDir, config.CLIFlags{})
+		cfg, err := config.Load(projectDir, config.CLIFlags{}, kitSnippets)
 		if err != nil {
 			die("load config: %v", err)
 		}
@@ -96,7 +98,7 @@ func main() {
 		cfgPath := filepath.Join(home, ".asylum", "config.yaml")
 		if err := os.MkdirAll(filepath.Dir(cfgPath), 0755); err != nil {
 			log.Error("create config directory: %v", err)
-		} else if err := config.WriteDefaults(cfgPath); err != nil {
+		} else if err := config.WriteDefaults(cfgPath, kitSnippets); err != nil {
 			log.Error("write default config: %v", err)
 		}
 	}
@@ -120,7 +122,7 @@ func main() {
 		Volumes:  flags.Volumes,
 		Env:      flags.Env,
 		Java:     flags.Java,
-	})
+	}, kitSnippets)
 	if err != nil {
 		die("load config: %v", err)
 	}
