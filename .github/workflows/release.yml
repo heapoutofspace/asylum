@@ -44,3 +44,45 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           mike deploy "$VERSION" latest --update-aliases --push
           mike set-default latest --push
+
+  notify:
+    needs: [release, docs]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          # Extract the section for this version (between its header and the next ## header)
+          CHANGELOG=$(sed -n "/^## ${VERSION}/,/^## /{/^## ${VERSION}/d;/^## /d;p;}" CHANGELOG.md | sed '/^$/N;/^\n$/d')
+          # Escape for GitHub Actions output
+          {
+            echo "body<<CHANGELOG_EOF"
+            echo "$CHANGELOG"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Notify Rocket.Chat
+        env:
+          ROCKETCHAT_WEBHOOK_URL: ${{ secrets.ROCKETCHAT_WEBHOOK_URL }}
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          read -r -d '' TEXT <<EOF || true
+          **Asylum ${VERSION}** has been released :rocket:
+
+          **Update:**
+          \`\`\`
+          asylum self-update
+          \`\`\`
+
+          **What's new:**
+          ${{ steps.changelog.outputs.body }}
+
+          [Documentation](https://asylum.inventage.ai/${VERSION}/) · [Release](https://github.com/inventage-ai/asylum/releases/tag/${GITHUB_REF_NAME})
+          EOF
+
+          curl -sf -X POST "$ROCKETCHAT_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg text "$TEXT" '{text: $text}')"
