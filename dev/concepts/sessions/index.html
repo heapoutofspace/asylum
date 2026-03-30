@@ -1674,7 +1674,7 @@
 <li>Subsequent invocations exec into the running container</li>
 <li>The container is automatically removed when the last session exits</li>
 </ol>
-<p>Session count is tracked in <code>~/.asylum/projects/&lt;container&gt;/sessions</code> using file locking.</p>
+<p>When a session exits, asylum checks for other active exec sessions inside the container. If none remain, the container is automatically removed.</p>
 <h2 id="agent-resume">Agent Resume<a class="headerlink" href="#agent-resume" title="Permanent link">&para;</a></h2>
 <p>Agents automatically resume their previous session by default. This means if you run <code>asylum</code>, close the terminal, and run <code>asylum</code> again, the agent picks up where it left off.</p>
 <p>Use <code>-n</code> / <code>--new</code> to start a fresh session:</p>
