@@ -279,3 +279,164 @@ func TestSyncNewKits_NoStateFile(t *testing.T) {
 		t.Error("state should be populated after sync")
 	}
 }
+
+func TestRemoveKitComment_WithOptions(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+
+	initial := `version: "0.2"
+kits:
+  docker: {}
+
+  # python:
+  #   versions:
+  #     - 3.14
+  # packages:
+  #   - ansible
+`
+	os.WriteFile(path, []byte(initial), 0644)
+
+	if err := RemoveKitComment(path, "python"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(path)
+	text := string(data)
+
+	if strings.Contains(text, "python") {
+		t.Errorf("commented python block should be removed, got:\n%s", text)
+	}
+	if !strings.Contains(text, "docker") {
+		t.Error("docker should be preserved")
+	}
+}
+
+func TestRemoveKitComment_NotPresent(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+
+	initial := "version: \"0.2\"\nkits:\n  docker: {}\n"
+	os.WriteFile(path, []byte(initial), 0644)
+
+	if err := RemoveKitComment(path, "python"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(path)
+	if string(data) != initial {
+		t.Errorf("file should be unchanged, got:\n%s", string(data))
+	}
+}
+
+func TestRemoveKitComment_SingleLine(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+
+	initial := `version: "0.2"
+kits:
+  docker: {}
+
+  # apt:                # System packages
+`
+	os.WriteFile(path, []byte(initial), 0644)
+
+	if err := RemoveKitComment(path, "apt"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(path)
+	text := string(data)
+
+	if strings.Contains(text, "apt") {
+		t.Errorf("commented apt line should be removed, got:\n%s", text)
+	}
+}
+
+func TestRemoveKitEntry_WithNestedConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+
+	initial := `version: "0.2"
+kits:
+  docker: {}
+
+  java:
+    versions:
+      - 17
+      - 21
+    default-version: 21
+
+  node:
+    versions:
+      - 22
+`
+	os.WriteFile(path, []byte(initial), 0644)
+
+	if err := RemoveKitEntry(path, "java"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(path)
+	text := string(data)
+
+	if strings.Contains(text, "java") {
+		t.Errorf("java block should be removed, got:\n%s", text)
+	}
+	if !strings.Contains(text, "docker") {
+		t.Error("docker should be preserved")
+	}
+	if !strings.Contains(text, "node") {
+		t.Error("node should be preserved")
+	}
+}
+
+func TestRemoveKitEntry_NotPresent(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+
+	initial := "version: \"0.2\"\nkits:\n  docker: {}\n"
+	os.WriteFile(path, []byte(initial), 0644)
+
+	if err := RemoveKitEntry(path, "java"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(path)
+	if string(data) != initial {
+		t.Errorf("file should be unchanged, got:\n%s", string(data))
+	}
+}
+
+func TestRemoveKitEntry_EmptyMapping(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+
+	initial := `version: "0.2"
+kits:
+  docker: {}
+
+  github: {}
+
+  node:
+    versions:
+      - 22
+`
+	os.WriteFile(path, []byte(initial), 0644)
+
+	if err := RemoveKitEntry(path, "github"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(path)
+	text := string(data)
+
+	if strings.Contains(text, "github") {
+		t.Errorf("github should be removed, got:\n%s", text)
+	}
+	if !strings.Contains(text, "docker") {
+		t.Error("docker should be preserved")
+	}
+	if !strings.Contains(text, "node") {
+		t.Error("node should be preserved")
+	}
+}

@@ -102,6 +102,161 @@ func SyncKitToConfig(path string, kitName string, snippet string) error {
 	return os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
 }
 
+// RemoveKitComment removes a commented-out kit block from the kits section.
+// It finds the comment line matching "# <name>:" at kit entry indent (2 spaces)
+// and removes it plus any subsequent deeper-indented comment lines.
+func RemoveKitComment(path string, kitName string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(data), "\n")
+
+	kitsIdx := -1
+	kitsLineIndent := 0
+	for i, line := range lines {
+		trimmed := strings.TrimLeft(line, " ")
+		if strings.HasPrefix(trimmed, "kits:") {
+			kitsIdx = i
+			kitsLineIndent = len(line) - len(trimmed)
+			break
+		}
+	}
+	if kitsIdx < 0 {
+		return nil
+	}
+
+	entryIndent := kitsLineIndent + 2
+	prefix := strings.Repeat(" ", entryIndent) + "# " + kitName + ":"
+
+	// Find the commented kit line.
+	startIdx := -1
+	for i := kitsIdx + 1; i < len(lines); i++ {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		if indent <= kitsLineIndent && !strings.HasPrefix(trimmed, "#") {
+			break
+		}
+		if strings.HasPrefix(line, prefix) {
+			startIdx = i
+			break
+		}
+	}
+	if startIdx < 0 {
+		return nil
+	}
+
+	// Find the end of the commented block: subsequent comment lines at deeper indent.
+	endIdx := startIdx + 1
+	for endIdx < len(lines) {
+		line := lines[endIdx]
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			endIdx++
+			continue
+		}
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		if !strings.HasPrefix(trimmed, "#") || indent <= entryIndent {
+			break
+		}
+		endIdx++
+	}
+
+	// Remove any leading blank line before the block.
+	if startIdx > 0 && strings.TrimSpace(lines[startIdx-1]) == "" {
+		startIdx--
+	}
+
+	result := make([]string, 0, len(lines)-(endIdx-startIdx))
+	result = append(result, lines[:startIdx]...)
+	result = append(result, lines[endIdx:]...)
+
+	return os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
+}
+
+// RemoveKitEntry removes an active kit's YAML block (the kit key line and all
+// nested lines at deeper indentation) from the kits section.
+func RemoveKitEntry(path string, kitName string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(data), "\n")
+
+	kitsIdx := -1
+	kitsLineIndent := 0
+	for i, line := range lines {
+		trimmed := strings.TrimLeft(line, " ")
+		if strings.HasPrefix(trimmed, "kits:") {
+			kitsIdx = i
+			kitsLineIndent = len(line) - len(trimmed)
+			break
+		}
+	}
+	if kitsIdx < 0 {
+		return nil
+	}
+
+	entryIndent := kitsLineIndent + 2
+
+	// Find the kit entry line.
+	startIdx := -1
+	for i := kitsIdx + 1; i < len(lines); i++ {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		if indent <= kitsLineIndent && !strings.HasPrefix(trimmed, "#") {
+			break
+		}
+		if indent == entryIndent && !strings.HasPrefix(trimmed, "#") && strings.HasPrefix(trimmed, kitName+":") {
+			startIdx = i
+			break
+		}
+	}
+	if startIdx < 0 {
+		return nil
+	}
+
+	// Find the end: lines deeper than entry indent (nested config).
+	endIdx := startIdx + 1
+	for endIdx < len(lines) {
+		line := lines[endIdx]
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			endIdx++
+			continue
+		}
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		if indent <= entryIndent {
+			break
+		}
+		endIdx++
+	}
+
+	// Consume one trailing blank line if present.
+	if endIdx < len(lines) && strings.TrimSpace(lines[endIdx]) == "" {
+		endIdx++
+	}
+
+	// Also consume a leading blank line if the previous line is also blank or is the kits: line.
+	if startIdx > 0 && strings.TrimSpace(lines[startIdx-1]) == "" && startIdx-1 > kitsIdx {
+		startIdx--
+	}
+
+	result := make([]string, 0, len(lines)-(endIdx-startIdx))
+	result = append(result, lines[:startIdx]...)
+	result = append(result, lines[endIdx:]...)
+
+	return os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
+}
+
 // SyncKitCommentToConfig appends a commented-out kit entry to the end of
 // the kits block, preserving file formatting via goccy/go-yaml's AST.
 func SyncKitCommentToConfig(path string, comment string) error {

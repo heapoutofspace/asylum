@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- `asylum config` command — interactive tabbed TUI for managing kits, credentials, and isolation settings after initial setup
 - Sandbox rules file lists disabled kits with a reference to the asylum-reference doc for activation instructions
 
 ### Changed

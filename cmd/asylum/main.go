@@ -64,6 +64,9 @@ func main() {
 			die("%v", err)
 		}
 		return
+	case "config":
+		runConfig()
+		return
 	}
 
 	projectDir, err := filepath.Abs(".")
@@ -512,6 +515,12 @@ func parseArgs(args []string) (cliFlags, string, []string, error) {
 				} else {
 					return cliFlags{}, "", nil, fmt.Errorf("unknown flag %q for shell (only --admin is supported)", args[i])
 				}
+			}
+		case arg == "config":
+			subcommand = "config"
+			i++
+			if i < len(args) {
+				return cliFlags{}, "", nil, fmt.Errorf("unexpected argument %q after config", args[i])
 			}
 		case arg == "ssh-init":
 			subcommand = "ssh-init"
@@ -1043,6 +1052,7 @@ Usage:
   asylum [flags] shell          Interactive zsh shell
   asylum [flags] shell --admin  Admin shell with sudo notice
   asylum [flags] run <cmd>      Run command in container
+  asylum config                 Configure kits, credentials, and isolation
   asylum cleanup                Remove current project's container, volumes, and data
   asylum cleanup --all          Remove all Asylum images, volumes, and cached data
   asylum version [--short]      Show version
