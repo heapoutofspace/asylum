@@ -157,7 +157,7 @@ func RemoveVolumes(volumes ...string) error {
 // PID 1 (docker-init) and the check command itself are excluded.
 func HasOtherSessions(containerName string) bool {
 	out, err := exec.Command("docker", "exec", containerName,
-		"ps", "-o", "pid,ppid", "--no-headers").Output()
+		"ps", "-eo", "pid,ppid", "--no-headers").Output()
 	if err != nil {
 		return false
 	}
