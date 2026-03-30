@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.6.1 — 2026-03-30
+
+Patch release fixing Docker volume mounting issues on some Docker Desktop versions and a spurious kit sync message for new users.
+
+### Fixed
+- Nested bind mount failure on some Docker Desktop versions
+- Kit sync messages shown to users without a config file
+
 ## 0.6.0 — 2026-03-29
 
 This release introduces the kit system — modular, composable tooling profiles that replace hardcoded language toolchains with a flexible, extensible architecture. Each kit owns its Dockerfile snippets, entrypoint setup, config defaults, credentials, and agent rules. Also adds Claude config isolation, a documentation site, and aligns the container user with the host identity.
