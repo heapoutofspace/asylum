@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -18,9 +19,13 @@ func SyncNewKits(asylumDir string, interactive bool) (bool, error) {
 		return false, fmt.Errorf("load state: %w", err)
 	}
 
-	// If the global config needs v1→v2 migration, the user already has their
-	// kits configured. Mark all kits as seen so they aren't prompted.
-	if NeedsMigration(filepath.Join(asylumDir, "config.yaml")) {
+	configPath := filepath.Join(asylumDir, "config.yaml")
+
+	// If the global config doesn't exist yet (first run or upgrade from a
+	// pre-config version) or needs v1→v2 migration, the user already has
+	// their kits configured (or will get them via WriteDefaults).
+	// Mark all kits as seen so they aren't prompted.
+	if _, err := os.Stat(configPath); os.IsNotExist(err) || NeedsMigration(configPath) {
 		state.KnownKits = kit.All()
 		if err := SaveState(asylumDir, state); err != nil {
 			return false, fmt.Errorf("save state: %w", err)
@@ -32,8 +37,6 @@ func SyncNewKits(asylumDir string, interactive bool) (bool, error) {
 	if len(newKits) == 0 {
 		return false, nil
 	}
-
-	configPath := filepath.Join(asylumDir, "config.yaml")
 
 	for _, name := range newKits {
 		k := kit.Get(name)

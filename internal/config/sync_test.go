@@ -245,6 +245,26 @@ func TestSyncNewKits_AllKnown(t *testing.T) {
 	}
 }
 
+func TestSyncNewKits_NoConfigFile(t *testing.T) {
+	dir := t.TempDir()
+
+	// No config.yaml, no state.json — simulates upgrade from pre-config version.
+	// Should silently mark all kits as known without showing messages.
+	synced, err := SyncNewKits(dir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if synced {
+		t.Error("expected no sync when config.yaml doesn't exist")
+	}
+
+	// State should be populated with all kits so next run doesn't re-prompt
+	state, _ := LoadState(dir)
+	if len(state.KnownKits) != len(kit.All()) {
+		t.Errorf("expected state to contain all %d kits, got %d", len(kit.All()), len(state.KnownKits))
+	}
+}
+
 func TestSyncNewKits_NoStateFile(t *testing.T) {
 	dir := t.TempDir()
 
