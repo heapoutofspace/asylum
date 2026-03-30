@@ -3,8 +3,12 @@ package config
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
+	goyaml "github.com/goccy/go-yaml/ast"
+	goyamlparser "github.com/goccy/go-yaml/parser"
+	goyamltoken "github.com/goccy/go-yaml/token"
 	"gopkg.in/yaml.v3"
 )
 
@@ -98,23 +102,65 @@ func SyncKitToConfig(path string, kitName string, snippet string) error {
 	return os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
 }
 
-// SyncKitCommentToConfig appends a commented-out kit block to the config
-// file's kits mapping as a foot comment.
+// SyncKitCommentToConfig appends a commented-out kit entry to the end of
+// the kits block, preserving file formatting via goccy/go-yaml's AST.
 func SyncKitCommentToConfig(path string, comment string) error {
-	doc, err := parseConfigDoc(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
-	kitsNode := findOrCreateKitsMapping(doc)
-
-	// Append as foot comment on the kits mapping node
-	if kitsNode.FootComment != "" {
-		kitsNode.FootComment += "\n\n" + comment
-	} else {
-		kitsNode.FootComment = comment
+	f, err := goyamlparser.ParseBytes(data, goyamlparser.ParseComments)
+	if err != nil {
+		return err
 	}
-	return writeConfigDoc(path, doc)
+
+	// Find the kits mapping in the AST.
+	kitsMapping := findKitsMappingGoccy(f)
+	if kitsMapping == nil || len(kitsMapping.Values) == 0 {
+		return fmt.Errorf("no kits mapping found in %s", path)
+	}
+
+	// Append comment to the FootComment of the last entry in the kits mapping.
+	// Column 3 (1-indexed) gives 2-space indentation matching kit entries.
+	// The AST can't produce a true empty line between comments, so we insert
+	// a sentinel that gets replaced with a blank line in the final output.
+	const blankSentinel = "<BLANK>"
+	last := kitsMapping.Values[len(kitsMapping.Values)-1]
+	blank := &goyaml.CommentNode{BaseNode: &goyaml.BaseNode{}, Token: goyamltoken.New(blankSentinel, "", &goyamltoken.Position{Column: 3})}
+	tok := goyamltoken.New(" "+comment, "", &goyamltoken.Position{Column: 3})
+	cn := &goyaml.CommentNode{BaseNode: &goyaml.BaseNode{}, Token: tok}
+
+	if last.FootComment != nil {
+		last.FootComment.Comments = append(last.FootComment.Comments, blank, cn)
+	} else {
+		last.FootComment = &goyaml.CommentGroupNode{
+			BaseNode: &goyaml.BaseNode{},
+			Comments: []*goyaml.CommentNode{blank, cn},
+		}
+	}
+
+	out := regexp.MustCompile(`(?m)^\s*#`+blankSentinel+`$`).ReplaceAllString(f.String(), "")
+	return os.WriteFile(path, []byte(out), 0644)
+}
+
+// findKitsMappingGoccy finds the "kits" mapping node in a goccy/go-yaml AST.
+func findKitsMappingGoccy(f *goyaml.File) *goyaml.MappingNode {
+	if len(f.Docs) == 0 || f.Docs[0].Body == nil {
+		return nil
+	}
+	root, ok := f.Docs[0].Body.(*goyaml.MappingNode)
+	if !ok {
+		return nil
+	}
+	for _, v := range root.Values {
+		if v.Key.String() == "kits" {
+			if mn, ok := v.Value.(*goyaml.MappingNode); ok {
+				return mn
+			}
+		}
+	}
+	return nil
 }
 
 // parseConfigDoc reads a YAML file into a yaml.Node document tree.
@@ -128,15 +174,6 @@ func parseConfigDoc(path string) (*yaml.Node, error) {
 		return nil, err
 	}
 	return &doc, nil
-}
-
-// writeConfigDoc encodes a yaml.Node document tree back to a file.
-func writeConfigDoc(path string, doc *yaml.Node) error {
-	data, err := yaml.Marshal(doc)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, data, 0644)
 }
 
 // findKitsMapping walks the document to find the "kits" mapping node.
@@ -155,40 +192,6 @@ func findKitsMapping(doc *yaml.Node) *yaml.Node {
 		}
 	}
 	return nil
-}
-
-// findOrCreateKitsMapping walks the document to find the "kits" mapping node.
-// If it doesn't exist, it creates one and appends it to the root mapping.
-func findOrCreateKitsMapping(doc *yaml.Node) *yaml.Node {
-	if doc.Kind != yaml.DocumentNode || len(doc.Content) == 0 {
-		// Create minimal document structure
-		root := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-		doc.Kind = yaml.DocumentNode
-		doc.Content = []*yaml.Node{root}
-	}
-
-	root := doc.Content[0]
-	if root.Kind != yaml.MappingNode {
-		return &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	}
-
-	// Walk mapping pairs looking for "kits" key
-	for i := 0; i < len(root.Content)-1; i += 2 {
-		if root.Content[i].Value == "kits" {
-			if root.Content[i+1].Kind == yaml.MappingNode {
-				return root.Content[i+1]
-			}
-			// Key exists but value isn't a mapping — replace it
-			root.Content[i+1] = &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-			return root.Content[i+1]
-		}
-	}
-
-	// No "kits" key — create it
-	kitsKey := &yaml.Node{Kind: yaml.ScalarNode, Value: "kits", Tag: "!!str"}
-	kitsVal := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	root.Content = append(root.Content, kitsKey, kitsVal)
-	return kitsVal
 }
 
 // kitExistsInMapping checks if a key is already present in a mapping node.

@@ -1,40 +1,43 @@
-# Browser Kit
+# Agent-Browser Kit
 
-Chromium browser via [Playwright](https://playwright.dev/) for browser automation.
+Browser automation via [agent-browser](https://github.com/vercel-labs/agent-browser) — an AI-native browser automation CLI.
 
 **Activation: Opt-in** — only active if explicitly enabled in your config.
 
 ## What's Included
 
-- **Chromium** browser with all system dependencies
-- **playwright** CLI for browser automation
+- **agent-browser** CLI for browser automation
+- **Chrome** (Chrome for Testing, installed via `agent-browser install`)
+- **Claude Code skill** — auto-mounted from the upstream project, teaching Claude the snapshot-ref interaction pattern
 
 ## Configuration
 
 ```yaml
 kits:
-  browser: {}
+  agent-browser: {}
 ```
+
+The old `browser:` key still works as an alias.
 
 ## Dependencies
 
-Depends on the [Node.js](node.md) kit (Playwright is installed via npm).
-
-## Cache
-
-The Playwright browser cache is persisted at `/home/claude/.cache/ms-playwright` in a named Docker volume. This avoids re-downloading Chromium on every container start.
+Depends on the [Node.js](node.md) kit (agent-browser is installed via npm).
 
 ## Usage
 
 ```sh
-# Take a screenshot
-npx playwright screenshot https://example.com screenshot.png
+# Navigate to a page
+agent-browser open https://example.com
 
-# Run a Playwright script
-npx playwright test
+# Get interactive elements with refs
+agent-browser snapshot -i
 
-# Launch interactive codegen
-npx playwright codegen https://example.com
+# Interact using refs
+agent-browser click @e1
+agent-browser fill @e2 "search query"
+
+# Re-snapshot after page changes
+agent-browser snapshot -i
 ```
 
-Playwright can also be used programmatically from Node.js or Python scripts inside the container.
+Run `agent-browser --help` for all commands.

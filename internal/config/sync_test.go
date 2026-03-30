@@ -134,14 +134,14 @@ func TestSyncKitCommentToConfig_BlankLineBetweenComments(t *testing.T) {
 	os.WriteFile(path, []byte(initial), 0644)
 
 	// Add two comments in one call to test the \n\n separator
-	combined := "apt:                # System packages\n\nbrowser:            # Chromium browser"
+	combined := "apt:                # System packages\n\nagent-browser:      # Browser automation via agent-browser"
 	if err := SyncKitCommentToConfig(path, combined); err != nil {
 		t.Fatal(err)
 	}
 
 	data, _ := os.ReadFile(path)
 	text := string(data)
-	if !strings.Contains(text, "apt:") || !strings.Contains(text, "browser:") {
+	if !strings.Contains(text, "apt:") || !strings.Contains(text, "agent-browser:") {
 		t.Errorf("expected both commented kits in output, got:\n%s", text)
 	}
 }

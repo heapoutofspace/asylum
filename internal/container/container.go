@@ -64,6 +64,8 @@ func RunArgs(opts RunOpts) ([]string, error) {
 	}
 	if opts.Config.KitActive("docker") {
 		args = append(args, "--privileged")
+	} else if kit.AnyNeedsMount(opts.Kits) {
+		args = append(args, "--cap-add", "SYS_ADMIN")
 	}
 
 	args, err = appendVolumes(args, home, containerName, opts)

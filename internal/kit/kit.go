@@ -64,12 +64,19 @@ type Kit struct {
 	Tier              Tier              // activation tier (TierDefault, TierAlwaysOn, TierOptIn)
 	CredentialFunc    func(CredentialOpts) ([]CredentialMount, error) // optional credential provider
 	CredentialLabel   string            // display label for onboarding (e.g. "Java/Maven")
+	NeedsMount        bool              // kit uses mount --bind at runtime (requires SYS_ADMIN)
 	ConfigSnippet     string            // YAML snippet for default config (indented at 2 spaces under kits:)
 	ConfigNodes       []*yaml.Node      // structured key+value nodes for kits mapping (len 2: key, value)
 	ConfigComment     string            // comment text for opt-in/always-on kits shown in config
 }
 
 var registry = map[string]*Kit{}
+
+// aliases maps old kit names to their current names so that existing
+// configs keep working after a kit rename.
+var aliases = map[string]string{
+	"browser": "agent-browser",
+}
 
 // Register adds a top-level kit to the registry.
 func Register(k *Kit) {
@@ -123,6 +130,9 @@ func Resolve(names []string, disabled map[string]bool) ([]*Kit, error) {
 
 	for _, id := range names {
 		parent, child, hasChild := strings.Cut(id, "/")
+		if actual, ok := aliases[parent]; ok {
+			parent = actual
+		}
 		k, ok := registry[parent]
 		if !ok {
 			return nil, fmt.Errorf("unknown kit %q", parent)
@@ -249,6 +259,16 @@ func AggregateOnboardingTasks(kits []*Kit) []onboarding.Task {
 		tasks = append(tasks, k.OnboardingTasks...)
 	}
 	return tasks
+}
+
+// AnyNeedsMount reports whether any kit uses mount --bind at runtime.
+func AnyNeedsMount(kits []*Kit) bool {
+	for _, k := range kits {
+		if k.NeedsMount {
+			return true
+		}
+	}
+	return false
 }
 
 // AssembleDockerSnippets concatenates DockerSnippets from all provided kits.

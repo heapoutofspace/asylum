@@ -86,7 +86,7 @@ func SyncNewKits(asylumDir string, interactive bool, promptFn func([]*kit.Kit) [
 						log.Error("sync kit %s: %v", k.Name, err)
 					}
 				}
-				log.Info("kit %s added as comment — uncomment in config.yaml to enable", k.Name)
+				// silently added as comment in config
 			}
 		}
 	}
