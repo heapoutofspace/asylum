@@ -1359,11 +1359,9 @@ func TestRunArgsSandboxRulesMount(t *testing.T) {
 	agentConfigDir := filepath.Join(home, ".asylum", "agents", "claude")
 	os.MkdirAll(agentConfigDir, 0755)
 
-	// stubAgent with Name()=="claude" to trigger rules mount
 	a := stubAgent{
 		asylumConfigDir: agentConfigDir,
 	}
-	// Override Name to return "claude"
 	opts := RunOpts{
 		Config:     config.Config{},
 		Agent:      claudeStubAgent{stubAgent: a},
@@ -1396,6 +1394,15 @@ func TestRunArgsSandboxRulesMount(t *testing.T) {
 	}
 	if !foundRef {
 		t.Errorf("reference doc mount not found in args: %v", args)
+	}
+
+	// Mountpoint files must be pre-created in the host config dir so runc
+	// doesn't need to create them through a VirtioFS-backed bind mount.
+	if !fileExists(filepath.Join(agentConfigDir, "rules", "asylum-sandbox.md")) {
+		t.Error("mountpoint file not pre-created: rules/asylum-sandbox.md")
+	}
+	if !fileExists(filepath.Join(agentConfigDir, "asylum-reference.md")) {
+		t.Error("mountpoint file not pre-created: asylum-reference.md")
 	}
 }
 

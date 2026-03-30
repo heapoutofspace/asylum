@@ -88,21 +88,23 @@ func RunArgs(opts RunOpts) ([]string, error) {
 	}
 
 	// Generate and mount sandbox rules for Claude.
-	// Mount into ~/.claude/rules/ (user-level rules) rather than <project>/.claude/rules/
-	// because the project dir is bind-mounted from the host and Docker creates a directory
-	// (not a file) when the target parent doesn't exist in the mount namespace.
-	// The agent config dir (~/.asylum/agents/claude/) is already mounted at ~/.claude/,
-	// so we ensure rules/ exists there and the file mount layers on top.
+	// The agent config dir is bind-mounted at ~/.claude/, so the rules file
+	// mount at ~/.claude/rules/asylum-sandbox.md is nested inside it.
+	// Some Docker/runc versions cannot create mountpoint files through a
+	// VirtioFS-backed bind mount (the resolved path falls outside the overlay
+	// rootfs). Pre-creating the mountpoint files in the host config dir
+	// avoids this — runc finds the files already present and binds on top.
 	if opts.Agent.Name() == "claude" {
-		agentDir := config.ExpandTilde(opts.Agent.AsylumConfigDir(), home)
-		rulesSubdir := filepath.Join(agentDir, "rules")
-		os.MkdirAll(rulesSubdir, 0755)
-		// Clean up stale directory that Docker may have created at the mount
-		// target path from a previous run (Docker creates dirs, not files,
-		// when the target doesn't exist).
-		target := filepath.Join(rulesSubdir, "asylum-sandbox.md")
-		if info, err := os.Stat(target); err == nil && info.IsDir() {
-			os.RemoveAll(target)
+		hostConfigDir, err := agent.ResolveConfigDir(
+			opts.Agent,
+			opts.Config.AgentIsolation(opts.Agent.Name()),
+			containerName,
+		)
+		if err == nil {
+			rulesSubdir := filepath.Join(hostConfigDir, "rules")
+			os.MkdirAll(rulesSubdir, 0755)
+			ensureMountpoint(filepath.Join(rulesSubdir, "asylum-sandbox.md"))
+			ensureMountpoint(filepath.Join(hostConfigDir, "asylum-reference.md"))
 		}
 
 		rulesDir, err := generateSandboxRules(home, containerName, opts.Kits, opts.Version, opts.AllocatedPorts)
@@ -790,6 +792,19 @@ func adjustCounter(path string, delta int) (int, error) {
 		return n, fmt.Errorf("write counter: %w", err)
 	}
 	return n, nil
+}
+
+// ensureMountpoint ensures path exists as a regular file so that Docker
+// can bind-mount a file on top of it. Without this, runc must create the
+// mountpoint itself, which fails on some Docker versions when the path
+// resolves through a VirtioFS-backed bind mount (outside the overlay rootfs).
+func ensureMountpoint(path string) {
+	if info, err := os.Stat(path); err == nil && info.IsDir() {
+		os.RemoveAll(path)
+	}
+	if !fileExists(path) {
+		os.WriteFile(path, nil, 0644)
+	}
 }
 
 func fileExists(path string) bool {
