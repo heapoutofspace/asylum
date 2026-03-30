@@ -47,7 +47,7 @@ env:
 | `agent` | string | Default agent: `claude`, `gemini`, `codex` (default: `claude`) |
 | `release-channel` | string | Self-update channel: `stable` or `dev` |
 | `kits` | map | Kit configurations (see [Kits](../kits/index.md)) |
-| `agents` | map | Agent configurations |
+| `agents` | map | Agent configurations (see [Config Isolation](../concepts/isolation.md)) |
 | `ports` | list | Port forwarding rules |
 | `volumes` | list | Additional volume mounts |
 | `env` | map | Environment variables |

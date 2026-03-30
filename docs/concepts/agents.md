@@ -24,17 +24,11 @@ Or set it in your config:
 agent: gemini
 ```
 
-## Config Seeding
+## Config Isolation
 
-On first run, Asylum copies your host agent configuration into `~/.asylum/agents/<agent>/`:
+Asylum controls how each agent's config directory is managed inside the container. Three modes are available: `shared` (host config mounted directly), `isolated` (default — separate copy in `~/.asylum/agents/<agent>/`), and `project` (per-project copy).
 
-| Agent | Host Source | Asylum Copy |
-|-------|-----------|-------------|
-| Claude | `~/.claude` | `~/.asylum/agents/claude/` |
-| Gemini | `~/.gemini` | `~/.asylum/agents/gemini/` |
-| Codex | `~/.codex` | `~/.asylum/agents/codex/` |
-
-This is a **one-time copy**. After seeding, the asylum copy is independent — changes to your host config won't propagate to containers (and vice versa).
+On first run with Claude, Asylum prompts you to choose a mode. See [Config Isolation](isolation.md) for full details.
 
 ## Passing Extra Args
 

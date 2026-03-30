@@ -9,7 +9,7 @@ Asylum mounts your project, config, caches, and tools into the container. Your p
 | Project directory | `$PWD` | `$PWD` | Read-write |
 | Git config | `~/.gitconfig` | `/tmp/host_gitconfig` | Read-only |
 | SSH keys | `~/.asylum/ssh/` | `~/.ssh/` | Read-write |
-| Agent config | `~/.asylum/agents/<agent>/` | Agent-specific path | Read-write |
+| Agent config | Depends on [isolation mode](isolation.md) | Agent-specific path | Read-write |
 | Shell history | `~/.asylum/projects/<id>/history/` | `~/.shell_history/` | Read-write |
 | Direnv approvals | `~/.local/share/direnv/allow` | Same path | Read-only |
 | `.env` file | `$PWD/.env` | Loaded as `--env-file` | — |
