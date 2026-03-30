@@ -62,7 +62,7 @@ jobs:
           SUMMARY=$(echo "$CHANGELOG" | sed -n '/^### /q;p' | sed '/^$/d')
           ADDED=$(echo "$CHANGELOG" | sed -n '/^### Added/,/^### /{/^### Added/d;/^### /d;p;}' | sed '/^$/d')
           CHANGED=$(echo "$CHANGELOG" | sed -n '/^### Changed/,/^### /{/^### Changed/d;/^### /d;p;}' | sed '/^$/d')
-          FIXED=$(echo "$CHANGELOG" | sed -n '/^### Fixed/,/^### \|$/{ /^### Fixed/d; /^### /d; p; }' | sed '/^$/d')
+          FIXED=$(echo "$CHANGELOG" | sed -n '/^### Fixed/,/^### /{/^### Fixed/d;/^### /d;p;}' | sed '/^$/d')
 
           jq -n \
             --arg version "$VERSION" \
