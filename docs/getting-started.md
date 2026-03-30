@@ -71,15 +71,19 @@ env:
 
 See [Configuration](configuration/index.md) for all options, and [Kits](kits/index.md) for available language and tool kits.
 
-## SSH Setup
+## SSH
 
-To use git over SSH inside containers:
+SSH keys are managed automatically by the always-on [SSH kit](kits/ssh.md). On first container start, an Ed25519 key pair is generated at `~/.asylum/ssh/` and mounted into `~/.ssh/`. Add the printed public key to GitHub/GitLab.
 
-```sh
-asylum ssh-init
+You can configure SSH isolation in your config:
+
+```yaml
+kits:
+  ssh:
+    isolation: isolated   # default — generated keys in ~/.asylum/ssh/
+    # isolation: shared   # mount host ~/.ssh/ directly
+    # isolation: project  # per-project keys
 ```
-
-This creates an Ed25519 key pair in `~/.asylum/ssh/`. Add the public key to GitHub/GitLab. The keys are mounted into every container automatically.
 
 ## Next Steps
 

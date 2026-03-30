@@ -94,7 +94,6 @@ Full reference: [Configuration documentation](https://asylum.inventage.ai/latest
 | `asylum run <cmd>` | Run a command in the container |
 | `asylum cleanup` | Clean up current project (`--all` for everything) |
 | `asylum version` | Show version |
-| `asylum ssh-init` | Set up SSH keys |
 | `asylum self-update` | Update to latest version |
 
 Full reference: [Commands documentation](https://asylum.inventage.ai/latest/dev/commands/)

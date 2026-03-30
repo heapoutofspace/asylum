@@ -12,7 +12,7 @@ The CLI SHALL parse `-a/--agent`, `-p`, `-v`, `-e`, `--java`, `-n/--new`, `--ski
 - **THEN** the onboarding system is not invoked for this session
 
 ### Requirement: Command dispatch
-The CLI SHALL dispatch to version, cleanup, agent mode (default), shell mode, ssh-init, self-update, or arbitrary command based on subcommands and flags. The CLI SHALL accept `selfupdate` as an alias for `self-update`, and `--version`/`--cleanup` as flag aliases for the `version`/`cleanup` commands.
+The CLI SHALL dispatch to version, cleanup, config, agent mode (default), shell mode, self-update, or arbitrary command based on subcommands and flags. The CLI SHALL accept `selfupdate` as an alias for `self-update`, and `--version`/`--cleanup` as flag aliases for the `version`/`cleanup` commands.
 
 #### Scenario: Version command
 - **WHEN** `asylum version` is run

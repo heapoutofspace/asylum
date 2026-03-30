@@ -16,7 +16,7 @@ The `docs/` directory SHALL contain markdown pages for each section. Each comman
 
 #### Scenario: Command pages
 - **WHEN** a user navigates to the Commands section
-- **THEN** pages exist for shell, run, cleanup, version, ssh-init, and self-update
+- **THEN** pages exist for shell, run, cleanup, version, and self-update
 
 #### Scenario: Kit pages
 - **WHEN** a user navigates to the Kits section

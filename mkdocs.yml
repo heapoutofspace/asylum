@@ -50,7 +50,6 @@ nav:
     - run: commands/run.md
     - cleanup: commands/cleanup.md
     - version: commands/version.md
-    - ssh-init: commands/ssh-init.md
     - self-update: commands/self-update.md
   - Configuration:
     - Overview: configuration/index.md
@@ -64,6 +63,7 @@ nav:
     - Docker: kits/docker.md
     - GitHub CLI: kits/github.md
     - OpenSpec: kits/openspec.md
+    - SSH: kits/ssh.md
     - Shell: kits/shell.md
     - Ports: kits/ports.md
     - ast-grep: kits/ast-grep.md

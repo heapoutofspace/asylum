@@ -11,7 +11,6 @@ asylum [flags] run <cmd>      Run command in container
 asylum cleanup                Remove current project's container, volumes, and data
 asylum cleanup --all          Remove all Asylum images, volumes, and cached data
 asylum version [--short]      Show version
-asylum ssh-init               Initialize SSH directory
 asylum self-update [version]  Update to latest (or specific) version
 asylum self-update --dev      Update to latest dev build
 asylum self-update --safe     Emergency update (always dev, no checks)
@@ -38,5 +37,4 @@ See [CLI Flags](../configuration/flags.md) for all available flags.
 | [`run`](run.md) | Run a command in the container |
 | [`cleanup`](cleanup.md) | Clean up current project (or `--all` for everything) |
 | [`version`](version.md) | Show version information |
-| [`ssh-init`](ssh-init.md) | Set up SSH keys for containers |
 | [`self-update`](self-update.md) | Update Asylum to a new version |
