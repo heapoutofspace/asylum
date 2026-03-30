@@ -9,6 +9,7 @@
 - New kit activation prompt uses TUI multiselect instead of per-kit Y/n text prompts — all new kits (default and opt-in) shown in one batch with descriptions, default-on kits pre-selected
 - Browser kit renamed from `browser` to `agent-browser` and now uses [agent-browser](https://github.com/vercel-labs/agent-browser) instead of Playwright; the old `browser:` config key still works as an alias
 - Agent-browser Claude Code skill is generated at build time and mounted into `~/.claude/skills/` at runtime
+- ast-grep kit now generates and mounts the upstream Claude Code skill (`ast-grep/agent-skill`) for better rule authoring
 
 ### Fixed
 - Container not stopping after session exit when a previous session ended abnormally (terminal close, SIGHUP) — replaced file-based session counter with runtime exec session detection

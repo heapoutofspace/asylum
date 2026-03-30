@@ -7,6 +7,7 @@ func init() {
 		Tier:        TierOptIn,
 		Deps:        []string{"node"},
 		Tools:       []string{"sg"},
+		NeedsMount:  true,
 		ConfigSnippet: `  # ast-grep:           # AST-based code search (sg)
 `,
 		ConfigNodes:   configNodes("ast-grep", "AST-based code search (sg)", nil),
@@ -14,6 +15,15 @@ func init() {
 		DockerSnippet: `# Install ast-grep
 RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && \
     npm install -g @ast-grep/cli'
+RUN bash -c 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$(fnm env)" && \
+    cd /tmp && npx skills add ast-grep/agent-skill --skill ast-grep --yes --copy && \
+    mv .claude/skills/ast-grep /tmp/asylum-kit-skills-ast-grep' || true
+`,
+		EntrypointSnippet: `# Mount ast-grep skill into Claude skills directory
+if [ -d /tmp/asylum-kit-skills-ast-grep ] && [ -d "$HOME/.claude" ]; then
+    mkdir -p "$HOME/.claude/skills/ast-grep"
+    sudo mount --bind /tmp/asylum-kit-skills-ast-grep "$HOME/.claude/skills/ast-grep"
+fi
 `,
 		RulesSnippet: `### ast-grep (ast-grep kit)
 ast-grep (` + "`sg`" + `) is installed for AST-based code search, linting, and rewriting. Use ` + "`sg run`" + ` to search with patterns, ` + "`sg scan`" + ` to lint, and ` + "`sg rewrite`" + ` to apply transformations. Patterns use ` + "`$VAR`" + ` for wildcards.
