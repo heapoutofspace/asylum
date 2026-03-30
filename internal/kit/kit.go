@@ -317,9 +317,18 @@ func IntNode(v int) *yaml.Node {
 }
 
 // configNodes builds the standard [key, value] node pair for a kit's config entry.
-// If content is nil, the value is an empty mapping (displayed as `name:`).
+// If content is nil, the value is an empty mapping (displayed as `name: {}`).
+// Comments are placed on the value node for empty mappings (yaml.v3 produces
+// invalid YAML when a LineComment sits on a key whose value is block-style empty).
 func configNodes(name, comment string, content []*yaml.Node) []*yaml.Node {
-	return []*yaml.Node{ScalarNode(name, comment), MappingNode(content...)}
+	key := ScalarNode(name, "")
+	val := MappingNode(content...)
+	if len(content) == 0 && comment != "" {
+		val.LineComment = comment
+	} else if comment != "" {
+		key.LineComment = comment
+	}
+	return []*yaml.Node{key, val}
 }
 
 // CredentialCapableKits returns all registered kits (including sub-kits) that

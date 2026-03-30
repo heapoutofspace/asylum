@@ -1,38 +1,101 @@
 package config
 
 import (
-	"bytes"
+	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
-// SyncKitToConfig inserts a kit's config nodes into the config file's kits
-// mapping. If the kit key already exists, no modification is made.
-// nodes must be a [key, value] pair of yaml.Node pointers.
-func SyncKitToConfig(path string, kitName string, nodes []*yaml.Node) error {
+// SyncKitToConfig inserts a kit's config snippet into the config file's kits
+// block using text-based insertion (no YAML roundtrip, so comments and
+// indentation are preserved). If the kit key already exists, no modification
+// is made.
+func SyncKitToConfig(path string, kitName string, snippet string) error {
+	// Parse YAML read-only to check if kit already exists.
 	doc, err := parseConfigDoc(path)
 	if err != nil {
 		return err
 	}
-
-	kitsNode := findOrCreateKitsMapping(doc)
-	if kitExistsInMapping(kitsNode, kitName) {
-		return nil
+	if kitsNode := findKitsMapping(doc); kitsNode != nil {
+		if kitExistsInMapping(kitsNode, kitName) {
+			return nil
+		}
 	}
 
-	hadContent := len(kitsNode.Content) > 0
-	kitsNode.Content = append(kitsNode.Content, nodes...)
-
-	if err := writeConfigDoc(path, doc); err != nil {
+	data, err := os.ReadFile(path)
+	if err != nil {
 		return err
 	}
 
-	// Add blank line before the new kit entry for readability
-	if hadContent {
-		return spaceKitEntries(path)
+	lines := strings.Split(string(data), "\n")
+
+	// Find the "kits:" line.
+	kitsIdx := -1
+	kitsLineIndent := 0
+	for i, line := range lines {
+		trimmed := strings.TrimLeft(line, " ")
+		if strings.HasPrefix(trimmed, "kits:") {
+			kitsIdx = i
+			kitsLineIndent = len(line) - len(trimmed)
+			break
+		}
 	}
-	return nil
+	if kitsIdx < 0 {
+		return fmt.Errorf("no kits: mapping found in %s", path)
+	}
+
+	entryIndent := kitsLineIndent + 2
+
+	// Find insertion point: after the last active kit entry's full block,
+	// before any commented-out kit entries at the entry indent level.
+	insertIdx := kitsIdx + 1
+	inKitBlock := false
+	for i := kitsIdx + 1; i < len(lines); i++ {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+
+		if trimmed == "" {
+			continue
+		}
+
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		isComment := strings.HasPrefix(trimmed, "#")
+
+		// Past the kits block entirely.
+		if indent <= kitsLineIndent && !isComment {
+			break
+		}
+
+		if indent == entryIndent {
+			if isComment {
+				break // commented-out kit entry — insert before this
+			}
+			inKitBlock = true
+			insertIdx = i + 1
+			continue
+		}
+
+		// Deeper than entry level: part of the current kit's config.
+		if inKitBlock {
+			insertIdx = i + 1
+		}
+	}
+
+	snippetText := strings.TrimRight(snippet, "\n")
+	var insert []string
+	if insertIdx > kitsIdx+1 {
+		insert = append(insert, "") // blank line separator
+	}
+	insert = append(insert, snippetText)
+
+	result := make([]string, 0, len(lines)+len(insert))
+	result = append(result, lines[:insertIdx]...)
+	result = append(result, insert...)
+	result = append(result, lines[insertIdx:]...)
+
+	return os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
 }
 
 // SyncKitCommentToConfig appends a commented-out kit block to the config
@@ -76,66 +139,22 @@ func writeConfigDoc(path string, doc *yaml.Node) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-// spaceKitEntries reads the config file and inserts blank lines between
-// top-level entries in the kits mapping block.
-func spaceKitEntries(path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	lines := bytes.Split(data, []byte("\n"))
-
-	// Find the "kits:" line
-	kitsIdx := -1
-	for i, line := range lines {
-		if bytes.HasPrefix(bytes.TrimLeft(line, " "), []byte("kits:")) {
-			kitsIdx = i
-			break
-		}
-	}
-	if kitsIdx < 0 || kitsIdx+1 >= len(lines) {
+// findKitsMapping walks the document to find the "kits" mapping node.
+// Returns nil if not found.
+func findKitsMapping(doc *yaml.Node) *yaml.Node {
+	if doc.Kind != yaml.DocumentNode || len(doc.Content) == 0 {
 		return nil
 	}
-
-	// Detect kit entry indent from the first entry after "kits:"
-	kitIndent := -1
-	for _, line := range lines[kitsIdx+1:] {
-		if len(bytes.TrimSpace(line)) > 0 {
-			kitIndent = len(line) - len(bytes.TrimLeft(line, " "))
-			break
-		}
-	}
-	if kitIndent < 0 {
+	root := doc.Content[0]
+	if root.Kind != yaml.MappingNode {
 		return nil
 	}
-
-	kitsLineIndent := len(lines[kitsIdx]) - len(bytes.TrimLeft(lines[kitsIdx], " "))
-	var result [][]byte
-	firstKit := true
-
-	for i, line := range lines {
-		if i > kitsIdx && len(bytes.TrimSpace(line)) > 0 {
-			indent := len(line) - len(bytes.TrimLeft(line, " "))
-
-			// Past the kits block
-			if indent <= kitsLineIndent {
-				result = append(result, lines[i:]...)
-				return os.WriteFile(path, bytes.Join(result, []byte("\n")), 0644)
-			}
-
-			// Kit-level entry
-			if indent == kitIndent && bytes.Contains(line, []byte(":")) {
-				if !firstKit && len(result) > 0 && len(bytes.TrimSpace(result[len(result)-1])) > 0 {
-					result = append(result, []byte(""))
-				}
-				firstKit = false
-			}
+	for i := 0; i < len(root.Content)-1; i += 2 {
+		if root.Content[i].Value == "kits" && root.Content[i+1].Kind == yaml.MappingNode {
+			return root.Content[i+1]
 		}
-		result = append(result, line)
 	}
-
-	return os.WriteFile(path, bytes.Join(result, []byte("\n")), 0644)
+	return nil
 }
 
 // findOrCreateKitsMapping walks the document to find the "kits" mapping node.

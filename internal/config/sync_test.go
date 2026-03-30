@@ -6,8 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/inventage-ai/asylum/internal/kit"
 )
 
@@ -18,11 +16,7 @@ func TestSyncKitToConfig_InsertsNewKit(t *testing.T) {
 	initial := "version: \"0.2\"\nkits:\n  docker: {} # existing\n"
 	os.WriteFile(path, []byte(initial), 0644)
 
-	nodes := []*yaml.Node{
-		kit.ScalarNode("rust", "Rust toolchain"),
-		kit.MappingNode(),
-	}
-	if err := SyncKitToConfig(path, "rust", nodes); err != nil {
+	if err := SyncKitToConfig(path, "rust", "  rust:               # Rust toolchain"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -49,42 +43,13 @@ func TestSyncKitToConfig_SkipsExistingKit(t *testing.T) {
 	initial := "version: \"0.2\"\nkits:\n  docker: {}\n"
 	os.WriteFile(path, []byte(initial), 0644)
 
-	nodes := []*yaml.Node{
-		kit.ScalarNode("docker", "should not duplicate"),
-		kit.MappingNode(),
-	}
-	if err := SyncKitToConfig(path, "docker", nodes); err != nil {
+	if err := SyncKitToConfig(path, "docker", "  docker:"); err != nil {
 		t.Fatal(err)
 	}
 
 	data, _ := os.ReadFile(path)
 	if strings.Count(string(data), "docker") != 1 {
 		t.Error("docker should appear exactly once (not duplicated)")
-	}
-}
-
-func TestSyncKitToConfig_CreatesKitsMapping(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "config.yaml")
-
-	initial := "version: \"0.2\"\nagent: claude\n"
-	os.WriteFile(path, []byte(initial), 0644)
-
-	nodes := []*yaml.Node{
-		kit.ScalarNode("docker", ""),
-		kit.MappingNode(),
-	}
-	if err := SyncKitToConfig(path, "docker", nodes); err != nil {
-		t.Fatal(err)
-	}
-
-	data, _ := os.ReadFile(path)
-	text := string(data)
-	if !strings.Contains(text, "kits:") {
-		t.Error("kits mapping should be created")
-	}
-	if !strings.Contains(text, "docker") {
-		t.Error("docker should be added under kits")
 	}
 }
 
@@ -95,11 +60,7 @@ func TestSyncKitToConfig_PreservesComments(t *testing.T) {
 	initial := "version: \"0.2\"\n# My custom comment\nkits:\n  docker: {} # Docker support\n"
 	os.WriteFile(path, []byte(initial), 0644)
 
-	nodes := []*yaml.Node{
-		kit.ScalarNode("rust", ""),
-		kit.MappingNode(),
-	}
-	if err := SyncKitToConfig(path, "rust", nodes); err != nil {
+	if err := SyncKitToConfig(path, "rust", "  rust:"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -110,6 +71,40 @@ func TestSyncKitToConfig_PreservesComments(t *testing.T) {
 	}
 	if !strings.Contains(text, "Docker support") {
 		t.Error("line comments should be preserved")
+	}
+}
+
+func TestSyncKitToConfig_PreservesIndentation(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+
+	initial := "version: \"0.2\"\nkits:\n  python:\n    # versions:\n    #   - 3.14\n\n  # apt:                # System packages\n  #   packages:\n  #     - imagemagick\n"
+	os.WriteFile(path, []byte(initial), 0644)
+
+	if err := SyncKitToConfig(path, "docker", "  docker:               # Docker-in-Docker support"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(path)
+	text := string(data)
+
+	// Original indentation must be preserved (2-space, not 4-space)
+	if strings.Contains(text, "    python:") {
+		t.Error("indentation should be preserved at 2 spaces, not changed to 4")
+	}
+	// Commented children of python must stay intact
+	if !strings.Contains(text, "    # versions:") {
+		t.Errorf("commented children should be preserved, got:\n%s", text)
+	}
+	// Commented-out kit section must stay intact
+	if !strings.Contains(text, "  # apt:") {
+		t.Errorf("commented-out kit entries should be preserved, got:\n%s", text)
+	}
+	// New kit inserted before commented section
+	dockerIdx := strings.Index(text, "docker:")
+	aptIdx := strings.Index(text, "# apt:")
+	if dockerIdx < 0 || aptIdx < 0 || dockerIdx > aptIdx {
+		t.Errorf("docker should be inserted before commented-out kits, got:\n%s", text)
 	}
 }
 
@@ -159,12 +154,10 @@ func TestSyncKitToConfig_BlankLinesBetweenMultipleKits(t *testing.T) {
 	os.WriteFile(path, []byte(initial), 0644)
 
 	// Add two kits sequentially (each call reads, modifies, writes)
-	nodes1 := []*yaml.Node{kit.ScalarNode("rust", ""), kit.MappingNode()}
-	if err := SyncKitToConfig(path, "rust", nodes1); err != nil {
+	if err := SyncKitToConfig(path, "rust", "  rust:"); err != nil {
 		t.Fatal(err)
 	}
-	nodes2 := []*yaml.Node{kit.ScalarNode("python", ""), kit.MappingNode()}
-	if err := SyncKitToConfig(path, "python", nodes2); err != nil {
+	if err := SyncKitToConfig(path, "python", "  python:"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -202,7 +195,7 @@ func TestSyncNewKits_NonInteractive(t *testing.T) {
 
 	// SyncNewKits should detect all other registered kits as new.
 	// Non-interactive mode: TierDefault kits added as comments, not active.
-	synced, err := SyncNewKits(dir, false)
+	synced, err := SyncNewKits(dir, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +229,7 @@ func TestSyncNewKits_AllKnown(t *testing.T) {
 	// State already knows all kits
 	SaveState(dir, State{KnownKits: kit.All()})
 
-	synced, err := SyncNewKits(dir, false)
+	synced, err := SyncNewKits(dir, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +243,7 @@ func TestSyncNewKits_NoConfigFile(t *testing.T) {
 
 	// No config.yaml, no state.json — simulates upgrade from pre-config version.
 	// Should silently mark all kits as known without showing messages.
-	synced, err := SyncNewKits(dir, false)
+	synced, err := SyncNewKits(dir, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +265,7 @@ func TestSyncNewKits_NoStateFile(t *testing.T) {
 	os.WriteFile(configPath, []byte("version: \"0.2\"\nkits:\n  docker: {}\n"), 0644)
 
 	// No state.json — all kits are new (first run after feature lands)
-	synced, err := SyncNewKits(dir, false)
+	synced, err := SyncNewKits(dir, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

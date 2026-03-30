@@ -4,16 +4,22 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+	"slices"
 
 	"github.com/inventage-ai/asylum/internal/kit"
 	"github.com/inventage-ai/asylum/internal/log"
 )
 
 // SyncNewKits detects kits not yet in state.json, prompts for activation
-// (if interactive), updates the config file, and saves the new state.
-// Returns true if any new kits were processed.
-func SyncNewKits(asylumDir string, interactive bool) (bool, error) {
+// (if interactive and promptFn is provided), updates the config file, and
+// saves the new state. Returns true if any new kits were processed.
+//
+// promptFn receives the list of new promptable kits (TierDefault and
+// TierOptIn) and returns the names the user chose to activate. The caller
+// can inspect each kit's Tier to decide pre-selection. When promptFn is
+// nil, all TierDefault kits are activated automatically and TierOptIn
+// kits are added as comments.
+func SyncNewKits(asylumDir string, interactive bool, promptFn func([]*kit.Kit) []string) (bool, error) {
 	state, err := LoadState(asylumDir)
 	if err != nil {
 		return false, fmt.Errorf("load state: %w", err)
@@ -38,6 +44,8 @@ func SyncNewKits(asylumDir string, interactive bool) (bool, error) {
 		return false, nil
 	}
 
+	// Classify new kits by tier.
+	var promptable []*kit.Kit
 	for _, name := range newKits {
 		k := kit.Get(name)
 		if k == nil {
@@ -47,34 +55,38 @@ func SyncNewKits(asylumDir string, interactive bool) (bool, error) {
 		switch k.Tier {
 		case kit.TierAlwaysOn:
 			log.Info("new kit: %s (always active)", name)
+		case kit.TierDefault, kit.TierOptIn:
+			promptable = append(promptable, k)
+		}
+	}
 
-		case kit.TierDefault:
-			activate := true
-			if interactive {
-				activate = promptActivateKit(name, k.Description)
+	// Prompt for kit selection, or apply defaults when non-interactive.
+	if len(promptable) > 0 {
+		var activated []string
+		if interactive && promptFn != nil {
+			activated = promptFn(promptable)
+		} else {
+			for _, k := range promptable {
+				if k.Tier == kit.TierDefault {
+					activated = append(activated, k.Name)
+				}
 			}
-			if activate && interactive {
-				if k.ConfigNodes != nil {
-					if err := SyncKitToConfig(configPath, name, k.ConfigNodes); err != nil {
-						log.Error("sync kit %s: %v", name, err)
+		}
+
+		for _, k := range promptable {
+			if slices.Contains(activated, k.Name) {
+				if k.ConfigSnippet != "" {
+					if err := SyncKitToConfig(configPath, k.Name, k.ConfigSnippet); err != nil {
+						log.Error("sync kit %s: %v", k.Name, err)
 					}
 				}
 			} else {
-				// Non-interactive or declined: add as comment
 				if k.ConfigComment != "" {
 					if err := SyncKitCommentToConfig(configPath, k.ConfigComment); err != nil {
-						log.Error("sync kit %s: %v", name, err)
+						log.Error("sync kit %s: %v", k.Name, err)
 					}
 				}
-				log.Info("kit %s added as comment — uncomment in config.yaml to enable", name)
-			}
-
-		case kit.TierOptIn:
-			log.Info("new kit available: %s — uncomment in config.yaml to enable", name)
-			if k.ConfigComment != "" {
-				if err := SyncKitCommentToConfig(configPath, k.ConfigComment); err != nil {
-					log.Error("sync kit %s: %v", name, err)
-				}
+				log.Info("kit %s added as comment — uncomment in config.yaml to enable", k.Name)
 			}
 		}
 	}
@@ -86,15 +98,4 @@ func SyncNewKits(asylumDir string, interactive bool) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func promptActivateKit(name, description string) bool {
-	label := name
-	if description != "" {
-		label = name + " (" + description + ")"
-	}
-	fmt.Printf("  New kit: %s — activate? [Y/n] ", label)
-	var answer string
-	fmt.Scanln(&answer)
-	return !strings.HasPrefix(strings.ToLower(strings.TrimSpace(answer)), "n")
 }

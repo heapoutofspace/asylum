@@ -5,7 +5,11 @@
 ### Added
 - Sandbox rules file lists disabled kits with a reference to the asylum-reference doc for activation instructions
 
+### Changed
+- New kit activation prompt uses TUI multiselect instead of per-kit Y/n text prompts — all new kits (default and opt-in) shown in one batch with descriptions, default-on kits pre-selected
+
 ### Fixed
+- Kit activation via `SyncKitToConfig` mangling config.yaml indentation, comments, and whitespace (switched from YAML roundtrip to text-based insertion)
 - Tilde (`~`) not expanded in volume destination paths, causing Docker mount errors
 
 ## 0.6.1 — 2026-03-30

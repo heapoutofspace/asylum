@@ -78,7 +78,26 @@ func main() {
 		home, err := os.UserHomeDir()
 		if err == nil {
 			asylumDir := filepath.Join(home, ".asylum")
-			if _, err := config.SyncNewKits(asylumDir, term.IsTerminal()); err != nil {
+			promptFn := func(kits []*kit.Kit) []string {
+				options := make([]tui.Option, len(kits))
+				var defaultSel []int
+				for i, k := range kits {
+					options[i] = tui.Option{Label: k.Name, Description: k.Description}
+					if k.Tier == kit.TierDefault {
+						defaultSel = append(defaultSel, i)
+					}
+				}
+				selected, err := tui.MultiSelect("New kits available — select which to activate", options, defaultSel)
+				if err != nil {
+					return nil
+				}
+				names := make([]string, len(selected))
+				for i, idx := range selected {
+					names[i] = kits[idx].Name
+				}
+				return names
+			}
+			if _, err := config.SyncNewKits(asylumDir, term.IsTerminal(), promptFn); err != nil {
 				log.Error("kit sync: %v", err)
 			}
 		}

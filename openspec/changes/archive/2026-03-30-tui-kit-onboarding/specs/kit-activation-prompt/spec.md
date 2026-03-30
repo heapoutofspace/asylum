@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Interactive prompt for new kits
 When new `TierDefault` or `TierOptIn` kits are detected in an interactive terminal session, the system SHALL present a single `tui.MultiSelect` prompt listing all new promptable kits. `TierDefault` kits SHALL be pre-selected; `TierOptIn` kits SHALL be unselected. The user can toggle any kit. Selected kits are activated in `config.yaml`; deselected kits are added as comments.

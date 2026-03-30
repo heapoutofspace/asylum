@@ -29,7 +29,7 @@ Kits have three activation levels:
 | **Default** | Added to your config automatically when first detected. Active when present in config. |
 | **Opt-in** | Only active if you explicitly enable it in your config. |
 
-When Asylum detects a new kit (e.g., after an update), it prompts you to activate **Default** kits and adds **Opt-in** kits as commented-out entries in your config.
+When Asylum detects new kits (e.g., after an update), it presents a single selection prompt with all new **Default** and **Opt-in** kits. Default kits are pre-selected; opt-in kits are unselected. Deselected kits are added as commented-out entries in your config.
 
 ## Enabling Kits
 
