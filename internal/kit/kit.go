@@ -66,6 +66,7 @@ type Kit struct {
 	Tier              Tier              // activation tier (TierDefault, TierAlwaysOn, TierOptIn)
 	CredentialFunc    func(CredentialOpts) ([]CredentialMount, error) // optional credential provider
 	CredentialLabel   string            // display label for onboarding (e.g. "Java/Maven")
+	MountFunc         func(CredentialOpts) ([]CredentialMount, error) // volume mounts without credential UI
 	NeedsMount        bool              // kit uses mount --bind at runtime (requires SYS_ADMIN)
 	ConfigSnippet     string            // YAML snippet for default config (indented at 2 spaces under kits:)
 	ConfigNodes       []*yaml.Node      // structured key+value nodes for kits mapping (len 2: key, value)

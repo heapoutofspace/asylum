@@ -315,6 +315,35 @@ func appendVolumes(args []string, home, cname string, opts RunOpts) ([]string, e
 		}
 	}
 
+	// Kit volume mounts (non-credential, e.g. SSH keys)
+	for _, k := range opts.Kits {
+		if k.MountFunc == nil {
+			continue
+		}
+		kitName, _, _ := strings.Cut(k.Name, "/")
+		var isolation string
+		if kc := opts.Config.KitOption(kitName); kc != nil {
+			isolation = kc.Isolation
+		}
+		mounts, err := k.MountFunc(kit.CredentialOpts{
+			HomeDir:       home,
+			ContainerName: cname,
+			Isolation:     isolation,
+		})
+		if err != nil {
+			log.Warn("mounts for %s: %v", k.Name, err)
+			continue
+		}
+		for _, m := range mounts {
+			dst := config.ExpandTilde(m.Destination, home)
+			mode := "ro"
+			if m.Writable {
+				mode = ""
+			}
+			vol(m.HostPath, dst, mode)
+		}
+	}
+
 	// Shell history
 	histDir := filepath.Join(home, ".asylum", "projects", cname, "history")
 	if err := os.MkdirAll(histDir, 0755); err != nil {

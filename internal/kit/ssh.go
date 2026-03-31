@@ -14,8 +14,7 @@ func init() {
 		Name:            "ssh",
 		Description:     "SSH key management",
 		Tier:            TierAlwaysOn,
-		CredentialFunc:  sshCredentialFunc,
-		CredentialLabel: "SSH",
+		MountFunc: sshCredentialFunc,
 		ConfigComment:   "ssh:                  # SSH key management\n  isolation: isolated # shared, isolated, project",
 		ConfigNodes: configNodes("ssh", "SSH key management", []*yaml.Node{
 			ScalarNode("isolation", "shared, isolated, project"),
