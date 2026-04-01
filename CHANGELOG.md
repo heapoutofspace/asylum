@@ -4,6 +4,7 @@
 
 ### Fixed
 - Container startup appearing to freeze for 60 seconds when the container crashes immediately — now fails fast with logs
+- Untrusted `mise.toml` in project directory crashing the entrypoint under `set -e` — mise configs are now auto-trusted (container is ephemeral)
 
 ## 0.6.2 — 2026-04-01
 

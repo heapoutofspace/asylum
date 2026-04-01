@@ -13,6 +13,8 @@ fi
 
 # Setup mise if available (needed for Java/Gradle)
 if command -v mise >/dev/null 2>&1; then
+    # Trust project config files — container is ephemeral, all mounts are user-chosen
+    mise trust --all 2>/dev/null || true
     eval "$(mise activate bash)"
 fi
 
