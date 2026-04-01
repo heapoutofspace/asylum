@@ -1,6 +1,6 @@
 # Asylum
 
-**Docker sandbox for AI coding agents.** Run Claude Code, Gemini CLI, or Codex in a full dev environment — your host stays clean, your tools stay fast.
+**Docker sandbox for AI coding agents.** Run Claude Code in a full dev environment — your host stays clean, your tools stay fast. Experimental support for Gemini CLI and Codex.
 
 [![CI](https://github.com/inventage-ai/asylum/actions/workflows/ci.yml/badge.svg)](https://github.com/inventage-ai/asylum/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/inventage-ai/asylum)](https://github.com/inventage-ai/asylum/releases)
@@ -36,7 +36,7 @@ On first run, Asylum builds a Docker image (~5 min) and seeds agent config from 
 
 ## Why Asylum?
 
-- **Multi-agent** — Claude Code, Gemini CLI, and Codex in one tool
+- **Built for Claude Code** — first-class support, with experimental Gemini CLI and Codex support
 - **Docker-in-Docker** — build and run containers inside the sandbox
 - **Real host paths** — project mounted at its actual path, so absolute paths and git worktrees work
 - **Persistent caches** — npm, pip, Maven, Gradle caches survive container restarts
@@ -122,7 +122,7 @@ See the [full kits reference](https://asylum.inventage.ai/latest/kits/) for conf
 | | Asylum | [Claudebox](https://github.com/RchGrav/claudebox) | [AgentBox](https://github.com/fletchgqc/agentbox) | [Safehouse](https://github.com/eugene1g/agent-safehouse) |
 |---|---|---|---|---|
 | **Approach** | Docker container | Docker container | Docker/Podman container | macOS kernel sandbox |
-| **Agents** | Claude, Gemini, Codex | Claude only | Claude, OpenCode | 13+ agents |
+| **Agents** | Claude (primary), Gemini, Codex (experimental) | Claude only | Claude, OpenCode | 13+ agents |
 | **Platform** | Linux, macOS | Linux, macOS | Linux, macOS (Bash 4+) | macOS only |
 | **Distribution** | Single Go binary | Self-extracting installer | Git clone + alias | Homebrew / shell script |
 | **Docker-in-Docker** | Yes | No | No | N/A |

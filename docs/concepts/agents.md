@@ -1,6 +1,8 @@
 # Agents
 
-Asylum supports three AI coding agents. Each runs in YOLO mode (auto-approve all actions) by default.
+Asylum is primarily built and tested with Claude Code. Gemini CLI and Codex support is experimental — basic functionality works, but these agents receive less testing and may have rough edges.
+
+All agents run in YOLO mode (auto-approve all actions) by default.
 
 ## Supported Agents
 

@@ -2,7 +2,7 @@
 
 Docker sandbox for AI coding agents. Single binary, runs on Linux and macOS (ARM and x86).
 
-Asylum wraps Docker to give [Claude Code](https://claude.ai), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [Codex](https://github.com/openai/codex) a full development environment with Python, Node.js, Java, and Docker-in-Docker — while keeping your host clean. Containers are ephemeral, but caches, auth, and history persist.
+Asylum wraps Docker to give [Claude Code](https://claude.ai) a full development environment with Python, Node.js, Java, and Docker-in-Docker — while keeping your host clean. Containers are ephemeral, but caches, auth, and history persist. Experimental support is available for [Gemini CLI](https://github.com/google-gemini/gemini-cli) and [Codex](https://github.com/openai/codex).
 
 ## Install
 
