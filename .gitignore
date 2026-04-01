@@ -2,6 +2,7 @@
 build/
 site/
 .asylum.local
+/asylum
 
 # Compiled class file
 *.class
