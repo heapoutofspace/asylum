@@ -24,6 +24,7 @@ type TabResult struct {
 	SelectIdx int   // selected index for StepSelect
 	MultiIdx  []int // selected indices for StepMultiSelect
 	Completed bool
+	Visited   bool // true after first saveTab; distinguishes "never visited" from "chose defaults"
 }
 
 // RunTabs runs a tabbed TUI and returns results for each tab.
@@ -74,15 +75,26 @@ type tabsModel struct {
 
 func (m *tabsModel) initTab(idx int) {
 	t := m.tabs[idx]
+	r := m.results[idx]
 	if t.Kind == StepSelect {
+		cursor := t.DefaultIdx
+		if r.Visited {
+			cursor = r.SelectIdx
+		}
 		m.selModel = selectModel{
 			options: t.Options,
-			cursor:  t.DefaultIdx,
+			cursor:  cursor,
 		}
 	} else {
 		selected := map[int]bool{}
-		for _, i := range t.DefaultSel {
-			selected[i] = true
+		if r.Visited {
+			for _, i := range r.MultiIdx {
+				selected[i] = true
+			}
+		} else {
+			for _, i := range t.DefaultSel {
+				selected[i] = true
+			}
 		}
 		m.multiModel = multiModel{
 			options:  t.Options,
@@ -93,11 +105,12 @@ func (m *tabsModel) initTab(idx int) {
 
 // saveTab captures the current tab's state into results.
 func (m *tabsModel) saveTab() {
+	m.results[m.active].Visited = true
 	t := m.tabs[m.active]
 	if t.Kind == StepSelect {
 		m.results[m.active].SelectIdx = m.selModel.cursor
 	} else {
-		var indices []int
+		indices := make([]int, 0)
 		for i := range m.multiModel.options {
 			if m.multiModel.selected[i] {
 				indices = append(indices, i)

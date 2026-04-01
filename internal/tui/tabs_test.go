@@ -116,11 +116,17 @@ func TestTabsModelRestoresStateOnSwitch(t *testing.T) {
 	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyLeft})
 	m = updated.(tabsModel)
 
-	// Tab 0 should still have both selected (initTab restores from DefaultSel,
-	// but we saved the modified state via saveTab, so initTab uses defaults —
-	// this tests that the result was captured)
+	// Results should have both selections saved
 	if len(m.results[0].MultiIdx) != 2 {
 		t.Errorf("expected saved state with 2 selections, got %v", m.results[0].MultiIdx)
+	}
+
+	// Visual model should also reflect the saved selections
+	if !m.multiModel.selected[0] {
+		t.Error("expected option A (index 0) to be selected in visual model")
+	}
+	if !m.multiModel.selected[1] {
+		t.Error("expected option B (index 1) to be selected in visual model")
 	}
 }
 
@@ -165,6 +171,80 @@ func TestTabsModelEscCancels(t *testing.T) {
 	}
 	if !m.cancelled {
 		t.Error("expected cancelled=true on escape")
+	}
+}
+
+func TestTabsModelEmptySelectionPreserved(t *testing.T) {
+	tabs := []Tab{
+		{Title: "Kits", Kind: StepMultiSelect, Options: []Option{{Label: "A"}, {Label: "B"}}, DefaultSel: []int{0, 1}},
+		{Title: "Other", Kind: StepSelect, Options: []Option{{Label: "X"}}, DefaultIdx: 0},
+	}
+
+	results := make([]TabResult, len(tabs))
+	m := tabsModel{tabs: tabs, results: results}
+	m.initTab(0)
+
+	// Deselect A (index 0)
+	m.multiModel.cursor = 0
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}})
+	m = updated.(tabsModel)
+
+	// Deselect B (index 1)
+	m.multiModel.cursor = 1
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}})
+	m = updated.(tabsModel)
+
+	// Switch to tab 1
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRight})
+	m = updated.(tabsModel)
+
+	// Switch back to tab 0
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyLeft})
+	m = updated.(tabsModel)
+
+	// Should remain empty, not revert to defaults
+	if m.multiModel.selected[0] {
+		t.Error("option A should remain deselected after round-trip")
+	}
+	if m.multiModel.selected[1] {
+		t.Error("option B should remain deselected after round-trip")
+	}
+	if len(m.results[0].MultiIdx) != 0 {
+		t.Errorf("expected empty MultiIdx, got %v", m.results[0].MultiIdx)
+	}
+}
+
+func TestTabsModelSelectCursorPreserved(t *testing.T) {
+	tabs := []Tab{
+		{Title: "Multi", Kind: StepMultiSelect, Options: []Option{{Label: "A"}}, DefaultSel: []int{0}},
+		{Title: "Select", Kind: StepSelect, Options: []Option{{Label: "X"}, {Label: "Y"}, {Label: "Z"}}, DefaultIdx: 0},
+	}
+
+	results := make([]TabResult, len(tabs))
+	m := tabsModel{tabs: tabs, results: results}
+	m.initTab(0)
+
+	// Switch to select tab
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRight})
+	m = updated.(tabsModel)
+
+	// Move cursor to Z (index 2)
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = updated.(tabsModel)
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = updated.(tabsModel)
+
+	// Switch to tab 0
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyLeft})
+	m = updated.(tabsModel)
+
+	// Switch back to select tab
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRight})
+	m = updated.(tabsModel)
+
+	// Cursor should be at index 2, not default 0
+	if m.selModel.cursor != 2 {
+		t.Errorf("expected select cursor at 2, got %d", m.selModel.cursor)
 	}
 }
 
