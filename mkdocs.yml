@@ -68,11 +68,13 @@ nav:
     - Shell: kits/shell.md
     - Ports: kits/ports.md
     - ast-grep: kits/ast-grep.md
-    - Browser: kits/browser.md
+    - Browser: kits/agent-browser.md
+    - RTK: kits/rtk.md
     - cx: kits/cx.md
     - APT Packages: kits/apt.md
   - Concepts:
     - Overview: concepts/index.md
+    - Isolation: concepts/isolation.md
     - Images: concepts/images.md
     - Mounts: concepts/mounts.md
     - Sessions: concepts/sessions.md
