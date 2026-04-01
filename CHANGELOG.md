@@ -2,13 +2,19 @@
 
 ## Unreleased
 
+## 0.6.3 — 2026-04-01
+
+Asylum now detects when a running container's image is stale after config changes and automatically restarts it, fixing the common issue where kit packages added to a project config were silently ignored. Also fixes container startup freezes and mise config trust errors.
+
 ### Added
-- Stale container detection — asylum now checks if the running container's image matches the current config and restarts automatically when no active sessions exist, or prompts when sessions are active
+- Stale container detection — asylum checks if the running container's image matches the current config and restarts automatically when no active sessions exist, or prompts when sessions are active
+- Config drift warning when volumes, env vars, or ports change on a running container
 
 ### Fixed
-- Kit packages from project config not triggering project image rebuild when container is restarted (#16)
+- Kit packages from project config not triggering project image rebuild (#16)
 - Container startup appearing to freeze for 60 seconds when the container crashes immediately — now fails fast with logs
-- Untrusted `mise.toml` in project directory crashing the entrypoint under `set -e` — mise configs are now auto-trusted (container is ephemeral)
+- Tab state lost when switching tabs in `asylum config` TUI
+- Untrusted `mise.toml` in project directory crashing the entrypoint under `set -e` — mise configs are now auto-trusted
 
 ## 0.6.2 — 2026-04-01
 
