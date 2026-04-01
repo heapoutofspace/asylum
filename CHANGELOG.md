@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.6.4 — 2026-04-01
+
+Fixes the rtk kit failing to build due to the `rtk` binary not being on PATH during Docker image assembly.
+
+### Fixed
+- rtk kit Docker build failure — the install script places `rtk` in `~/.local/bin/` which isn't on PATH in non-interactive Docker `RUN` commands
+
 ## 0.6.3 — 2026-04-01
 
 Asylum now detects when a running container's image is stale after config changes and automatically restarts it, fixing the common issue where kit packages added to a project config were silently ignored. Also fixes container startup freezes and mise config trust errors.
