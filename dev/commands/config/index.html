@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://asylum.inventage.ai/dev/kits/openspec/">
+        <link rel="canonical" href="https://asylum.inventage.ai/dev/commands/config/">
       
       
-        <link rel="prev" href="../github/">
+        <link rel="prev" href="../run/">
       
       
-        <link rel="next" href="../ssh/">
+        <link rel="next" href="../cleanup/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>OpenSpec - Asylum</title>
+        <title>config - Asylum</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#openspec-kit" class="md-skip">
+        <a href="#config" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +118,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              OpenSpec
+              config
             
           </span>
         </div>
@@ -315,8 +315,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -327,13 +329,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -354,7 +354,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -372,7 +372,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../commands/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -400,7 +400,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../commands/shell/" class="md-nav__link">
+      <a href="../shell/" class="md-nav__link">
         
   
   
@@ -428,7 +428,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../commands/run/" class="md-nav__link">
+      <a href="../run/" class="md-nav__link">
         
   
   
@@ -453,10 +453,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../commands/config/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    config
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -472,6 +499,120 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Description
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tabs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tabs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -484,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../commands/cleanup/" class="md-nav__link">
+      <a href="../cleanup/" class="md-nav__link">
         
   
   
@@ -512,7 +653,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../commands/version/" class="md-nav__link">
+      <a href="../version/" class="md-nav__link">
         
   
   
@@ -540,7 +681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../commands/self-update/" class="md-nav__link">
+      <a href="../self-update/" class="md-nav__link">
         
   
   
@@ -717,8 +858,6 @@
       
   
   
-    
-  
   
   
     
@@ -731,11 +870,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
@@ -756,7 +897,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -774,7 +915,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../kits/" class="md-nav__link">
         
   
   
@@ -802,7 +943,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../node/" class="md-nav__link">
+      <a href="../../kits/node/" class="md-nav__link">
         
   
   
@@ -830,7 +971,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../python/" class="md-nav__link">
+      <a href="../../kits/python/" class="md-nav__link">
         
   
   
@@ -858,7 +999,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../java/" class="md-nav__link">
+      <a href="../../kits/java/" class="md-nav__link">
         
   
   
@@ -886,7 +1027,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../docker/" class="md-nav__link">
+      <a href="../../kits/docker/" class="md-nav__link">
         
   
   
@@ -914,7 +1055,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../github/" class="md-nav__link">
+      <a href="../../kits/github/" class="md-nav__link">
         
   
   
@@ -939,37 +1080,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    OpenSpec
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../kits/openspec/" class="md-nav__link">
         
   
   
@@ -985,81 +1099,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#whats-included" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What's Included
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dependencies
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Usage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Notes
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1072,7 +1111,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ssh/" class="md-nav__link">
+      <a href="../../kits/ssh/" class="md-nav__link">
         
   
   
@@ -1100,7 +1139,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../shell/" class="md-nav__link">
+      <a href="../../kits/shell/" class="md-nav__link">
         
   
   
@@ -1128,7 +1167,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ports/" class="md-nav__link">
+      <a href="../../kits/ports/" class="md-nav__link">
         
   
   
@@ -1156,7 +1195,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ast-grep/" class="md-nav__link">
+      <a href="../../kits/ast-grep/" class="md-nav__link">
         
   
   
@@ -1184,7 +1223,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../agent-browser/" class="md-nav__link">
+      <a href="../../kits/agent-browser/" class="md-nav__link">
         
   
   
@@ -1212,7 +1251,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rtk/" class="md-nav__link">
+      <a href="../../kits/rtk/" class="md-nav__link">
         
   
   
@@ -1240,7 +1279,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cx/" class="md-nav__link">
+      <a href="../../kits/cx/" class="md-nav__link">
         
   
   
@@ -1268,7 +1307,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../apt/" class="md-nav__link">
+      <a href="../../kits/apt/" class="md-nav__link">
         
   
   
@@ -1641,43 +1680,82 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#whats-included" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What's Included
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dependencies
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
       
         Usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Description
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tabs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tabs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
       
     </span>
   </a>
@@ -1715,30 +1793,66 @@
   
 
 
-<h1 id="openspec-kit">OpenSpec Kit<a class="headerlink" href="#openspec-kit" title="Permanent link">&para;</a></h1>
-<p><a href="https://openspec.dev">OpenSpec</a> CLI for structured change management.</p>
-<p><strong>Activation: Default</strong> — added to config on first detection; active when present. Depends on the <a href="../node/">Node.js</a> kit.</p>
-<h2 id="whats-included">What's Included<a class="headerlink" href="#whats-included" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>openspec</strong> — CLI for managing specs, changes, and proposals</li>
-</ul>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="nt">kits</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">openspec</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">disabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">    </span><span class="c1"># disable this default-on kit</span>
-</code></pre></div>
-<h2 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h2>
-<p>The OpenSpec kit depends on <code>node</code> because it's installed via npm. If the Node.js kit is not active, Asylum emits a warning.</p>
+<h1 id="config">config<a class="headerlink" href="#config" title="Permanent link">&para;</a></h1>
+<p>Interactive wizard for configuring kits, credentials, and isolation.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
-<p>OpenSpec is used inside containers for structured change management:</p>
-<div class="highlight"><pre><span></span><code>openspec<span class="w"> </span>new<span class="w"> </span>change<span class="w"> </span><span class="s2">&quot;add-feature&quot;</span>
-openspec<span class="w"> </span>status<span class="w"> </span>--change<span class="w"> </span><span class="s2">&quot;add-feature&quot;</span>
-openspec<span class="w"> </span>list
+<div class="highlight"><pre><span></span><code>asylum config
 </code></pre></div>
-<p>See the <a href="https://openspec.dev">OpenSpec documentation</a> for full usage details.</p>
+<h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
+<p>Opens an interactive TUI wizard with three tabs for managing your global Asylum configuration (<code>~/.asylum/config.yaml</code>). Requires a terminal — cannot be run in non-interactive environments.</p>
+<p>The wizard modifies <code>~/.asylum/config.yaml</code> in place, preserving comments and formatting. Changes take effect on the next container start.</p>
+<h2 id="tabs">Tabs<a class="headerlink" href="#tabs" title="Permanent link">&para;</a></h2>
+<h3 id="kits">Kits<a class="headerlink" href="#kits" title="Permanent link">&para;</a></h3>
+<p>Toggle kits on or off. Shows all available kits except always-on and hidden ones. Kits that are currently active are pre-selected.</p>
+<ul>
+<li><strong>Enabling</strong> a kit adds it to your config (or removes <code>disabled: true</code> if it was previously disabled).</li>
+<li><strong>Disabling</strong> a kit sets <code>disabled: true</code> on its config entry.</li>
+</ul>
+<p>See <a href="../../kits/">Kits</a> for details on each kit.</p>
+<h3 id="credentials">Credentials<a class="headerlink" href="#credentials" title="Permanent link">&para;</a></h3>
+<p>Control which host credentials the sandbox can access (read-only). Each credential-capable kit is listed with its label. Kits with <code>credentials: auto</code> are pre-selected.</p>
+<ul>
+<li><strong>Enabling</strong> sets <code>credentials: auto</code> — the kit mounts its host credentials into the container.</li>
+<li><strong>Disabling</strong> sets <code>credentials: false</code>.</li>
+</ul>
+<h3 id="isolation">Isolation<a class="headerlink" href="#isolation" title="Permanent link">&para;</a></h3>
+<p>Choose how Claude's config (<code>~/.claude</code>) is managed inside the sandbox:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Mode</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Shared with host</strong></td>
+<td><code>shared</code></td>
+<td>Use host <code>~/.claude</code> directly. Changes sync both ways.</td>
+</tr>
+<tr>
+<td><strong>Isolated</strong> (recommended)</td>
+<td><code>isolated</code></td>
+<td>Separate from host, shared across projects.</td>
+</tr>
+<tr>
+<td><strong>Project-isolated</strong></td>
+<td><code>project</code></td>
+<td>Separate config per project. No state shared between projects.</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="../../concepts/isolation/">Config Isolation</a> for a full explanation of each mode.</p>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># Open the config wizard</span>
+asylum<span class="w"> </span>config
+</code></pre></div>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li>OpenSpec telemetry is disabled inside containers (<code>OPENSPEC_TELEMETRY=0</code>).</li>
+<li>Only modifies the global config (<code>~/.asylum/config.yaml</code>). Project-level config (<code>.asylum</code>, <code>.asylum.local</code>) must be edited manually.</li>
+<li>The wizard loads your current merged config (global + project layers) to show accurate current state, but writes only to the global file.</li>
+<li>You can also edit <code>~/.asylum/config.yaml</code> directly — the wizard is a convenience, not a requirement.</li>
 </ul>
 
 
