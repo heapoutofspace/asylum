@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"maps"
 	"os"
@@ -548,4 +549,28 @@ func ParseVolume(raw string, homeDir string) (Volume, error) {
 		}
 		return Volume{Host: ExpandTilde(parts[0], homeDir), Container: ExpandTilde(parts[1], homeDir), Options: strings.Join(parts[2:], ":")}, nil
 	}
+}
+
+// ConfigHash computes a deterministic hash of runtime-relevant config values
+// (volumes, env, ports) for detecting config drift against a running container.
+func ConfigHash(cfg Config) string {
+	h := sha256.New()
+
+	vols := slices.Clone(cfg.Volumes)
+	slices.Sort(vols)
+	for _, v := range vols {
+		fmt.Fprintf(h, "v:%s\n", v)
+	}
+
+	for _, k := range slices.Sorted(maps.Keys(cfg.Env)) {
+		fmt.Fprintf(h, "e:%s=%s\n", k, cfg.Env[k])
+	}
+
+	ps := slices.Clone(cfg.Ports)
+	slices.Sort(ps)
+	for _, p := range ps {
+		fmt.Fprintf(h, "p:%s\n", p)
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

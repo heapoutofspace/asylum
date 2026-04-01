@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+func ptrBool(b bool) *bool { return &b }
+
 func TestMerge(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -678,4 +680,110 @@ func TestLoadSkipsDirectoryAsConfig(t *testing.T) {
 	if cfg.Agent != "" {
 		t.Errorf("agent = %q, want empty", cfg.Agent)
 	}
+}
+
+func TestKitPackagesFromProjectConfig(t *testing.T) {
+	// Regression test: kit packages from project config must survive merge
+	// and be accessible via KitPackages (issue #16).
+	global := Config{
+		Kits: map[string]*KitConfig{
+			"node": {ShadowNodeModules: ptrBool(true)},
+		},
+	}
+	project := Config{
+		Kits: map[string]*KitConfig{
+			"node": {Packages: []string{"typescript-language-server"}},
+		},
+	}
+	merged := Merge(global, project)
+
+	pkgs := merged.KitPackages("node")
+	if len(pkgs) != 1 || pkgs[0] != "typescript-language-server" {
+		t.Errorf("KitPackages(node) = %v, want [typescript-language-server]", pkgs)
+	}
+
+	// Also verify shadow-node-modules survived the merge
+	kc := merged.KitOption("node")
+	if kc == nil || kc.ShadowNodeModules == nil || !*kc.ShadowNodeModules {
+		t.Error("shadow-node-modules should be preserved from global config")
+	}
+}
+
+func TestKitPackagesFromProjectConfig_NilBase(t *testing.T) {
+	// When global config has node: ~ (nil KitConfig), project packages must still work
+	global := Config{
+		Kits: map[string]*KitConfig{
+			"node": nil,
+		},
+	}
+	project := Config{
+		Kits: map[string]*KitConfig{
+			"node": {Packages: []string{"turbo"}},
+		},
+	}
+	merged := Merge(global, project)
+
+	pkgs := merged.KitPackages("node")
+	if len(pkgs) != 1 || pkgs[0] != "turbo" {
+		t.Errorf("KitPackages(node) = %v, want [turbo]", pkgs)
+	}
+}
+
+func TestConfigHash(t *testing.T) {
+	t.Run("deterministic", func(t *testing.T) {
+		cfg := Config{
+			Volumes: []string{"/b", "/a"},
+			Env:     map[string]string{"Z": "1", "A": "2"},
+			Ports:   []string{"8080", "3000"},
+		}
+		h1 := ConfigHash(cfg)
+		h2 := ConfigHash(cfg)
+		if h1 != h2 {
+			t.Errorf("same config produced different hashes: %s vs %s", h1, h2)
+		}
+	})
+
+	t.Run("different configs differ", func(t *testing.T) {
+		a := Config{Volumes: []string{"/a"}}
+		b := Config{Volumes: []string{"/b"}}
+		if ConfigHash(a) == ConfigHash(b) {
+			t.Error("different volumes should produce different hashes")
+		}
+
+		c := Config{Env: map[string]string{"K": "v1"}}
+		d := Config{Env: map[string]string{"K": "v2"}}
+		if ConfigHash(c) == ConfigHash(d) {
+			t.Error("different env should produce different hashes")
+		}
+
+		e := Config{Ports: []string{"3000"}}
+		f := Config{Ports: []string{"8080"}}
+		if ConfigHash(e) == ConfigHash(f) {
+			t.Error("different ports should produce different hashes")
+		}
+	})
+
+	t.Run("empty config stable", func(t *testing.T) {
+		h := ConfigHash(Config{})
+		if h == "" {
+			t.Error("empty config should produce a non-empty hash")
+		}
+		if h != ConfigHash(Config{}) {
+			t.Error("empty config hash should be stable")
+		}
+	})
+
+	t.Run("order independent", func(t *testing.T) {
+		a := Config{
+			Volumes: []string{"/z", "/a", "/m"},
+			Ports:   []string{"9000", "3000", "5000"},
+		}
+		b := Config{
+			Volumes: []string{"/a", "/m", "/z"},
+			Ports:   []string{"3000", "5000", "9000"},
+		}
+		if ConfigHash(a) != ConfigHash(b) {
+			t.Error("same values in different order should produce same hash")
+		}
+	})
 }

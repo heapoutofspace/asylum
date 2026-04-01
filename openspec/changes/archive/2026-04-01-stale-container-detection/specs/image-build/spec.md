@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Base image auto-rebuild
 The image package SHALL detect when the embedded Dockerfile or entrypoint.sh has changed and rebuild the base image automatically. `EnsureBase` SHALL be called on every asylum invocation regardless of container state. When a running container exists and `docker inspect` fails, asylum SHALL treat images as up to date rather than erroring out.
@@ -41,10 +41,3 @@ The image package SHALL generate a project-specific Dockerfile from the packages
 #### Scenario: Called with running container
 - **WHEN** a container is already running
 - **THEN** `EnsureProject` SHALL still be called and return the expected tag for comparison
-
-### Requirement: Project Dockerfile format
-The generated project Dockerfile SHALL install apt packages as root, and npm/pip/run commands as the claude user.
-
-#### Scenario: All package types
-- **WHEN** packages config has apt, npm, pip, and run entries
-- **THEN** the generated Dockerfile has apt-get as USER root, and npm/pip/run as USER claude

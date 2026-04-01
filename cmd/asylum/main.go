@@ -199,6 +199,23 @@ func main() {
 	newSession := flags.New
 	freshContainer := false
 
+	// Always ensure images are up to date (cheap when nothing changed)
+	asylumDir := filepath.Join(home, ".asylum")
+	state, err := config.LoadState(asylumDir)
+	if err != nil {
+		log.Warn("load state: %v", err)
+	}
+
+	containerRunning := docker.IsRunning(cname)
+	imageTag, stateChanged := ensureImages(globalKits, projectKits, agentInstalls, cfg, version, flags.Rebuild, &state, containerRunning)
+	if stateChanged {
+		if err := config.SaveState(asylumDir, state); err != nil {
+			log.Warn("save state: %v", err)
+		}
+	}
+
+	cfgHash := config.ConfigHash(cfg)
+
 	// If --rebuild requested but container is already running, ask to kill it
 	if flags.Rebuild && docker.IsRunning(cname) {
 		confirmed, err := tui.Confirm("Container is running. Kill it and rebuild?", false)
@@ -208,6 +225,11 @@ func main() {
 		if confirmed {
 			docker.RemoveContainer(cname)
 		}
+	}
+
+	// Check for stale running container (image or config changed)
+	if docker.IsRunning(cname) {
+		checkStaleContainer(cname, imageTag, cfgHash)
 	}
 
 	// If no container running, build images and start one detached
@@ -239,27 +261,6 @@ func main() {
 			}
 		}
 
-		asylumDir := filepath.Join(home, ".asylum")
-		state, err := config.LoadState(asylumDir)
-		if err != nil {
-			log.Warn("load state: %v", err)
-		}
-		baseRebuilt, newOrder, err := image.EnsureBase(globalKits, agentInstalls, version, flags.Rebuild, state.DockerSourceOrder)
-		if err != nil {
-			die("%v", err)
-		}
-		if newOrder != nil {
-			state.DockerSourceOrder = newOrder
-			if err := config.SaveState(asylumDir, state); err != nil {
-				log.Warn("save state: %v", err)
-			}
-		}
-
-		imageTag, err := image.EnsureProject(projectKits, collectPackages(cfg), cfg.JavaVersion(), version, baseRebuilt, flags.Rebuild)
-		if err != nil {
-			die("%v", err)
-		}
-
 		runArgs, resolved, overrides, err := container.RunArgs(container.RunOpts{
 			Config:     cfg,
 			Agent:      a,
@@ -268,6 +269,7 @@ func main() {
 			CacheDirs:  cacheDirs,
 			Kits:       allKits,
 			Version:    version,
+			ConfigHash: cfgHash,
 		})
 		if err != nil {
 			die("%v", err)
@@ -907,6 +909,78 @@ func collectOnboarding(cfg config.Config) map[string]bool {
 		m["npm"] = true
 	}
 	return m
+}
+
+// ensureImages runs EnsureBase and EnsureProject unconditionally to determine
+// the expected image tag. When a container is already running and image checks
+// fail (e.g. docker inspect errors), it falls through gracefully.
+func ensureImages(globalKits, projectKits []*kit.Kit, agentInstalls []*agent.AgentInstall, cfg config.Config, version string, noCache bool, state *config.State, containerRunning bool) (imageTag string, stateChanged bool) {
+	baseRebuilt, newOrder, err := image.EnsureBase(globalKits, agentInstalls, version, noCache, state.DockerSourceOrder)
+	if err != nil {
+		if containerRunning {
+			log.Warn("image check: %v (using running container)", err)
+			return "", false
+		}
+		die("%v", err)
+	}
+	if newOrder != nil {
+		state.DockerSourceOrder = newOrder
+		stateChanged = true
+	}
+
+	imageTag, err = image.EnsureProject(projectKits, collectPackages(cfg), cfg.JavaVersion(), version, baseRebuilt, noCache)
+	if err != nil {
+		if containerRunning {
+			log.Warn("image check: %v (using running container)", err)
+			return "", stateChanged
+		}
+		die("%v", err)
+	}
+	return imageTag, stateChanged
+}
+
+// checkStaleContainer compares the running container's image and config hash
+// against expected values. If stale: kills silently when no active sessions,
+// prompts when sessions are active. Config-only drift produces a warning.
+func checkStaleContainer(cname, imageTag, cfgHash string) {
+	if imageTag == "" {
+		return // image check was skipped (error fallthrough)
+	}
+
+	containerImg, err := docker.ContainerImageID(cname)
+	if err != nil {
+		return // can't inspect, skip check
+	}
+	expectedImg, err := docker.ImageID(imageTag)
+	if err != nil {
+		return
+	}
+
+	if containerImg != expectedImg {
+		// HasOtherSessions returns false on error (for cleanup safety).
+		// Here we want the opposite default: if we can't check, assume
+		// sessions exist and prompt rather than silently killing.
+		hasSession, checked := docker.CheckOtherSessions(cname)
+		if hasSession || !checked {
+			confirmed, err := tui.Confirm("Image has changed. Restart container?", true)
+			if err != nil || !confirmed {
+				return // user declined or aborted, exec into stale container
+			}
+		} else {
+			log.Info("config changed, restarting container...")
+		}
+		docker.RemoveContainer(cname)
+		return
+	}
+
+	// Image matches — check config drift
+	existing, err := docker.InspectLabel(cname, "asylum.config.hash")
+	if err != nil || existing == "" {
+		return // no label (legacy container), skip
+	}
+	if existing != cfgHash {
+		log.Warn("config changed (volumes/env/ports) — restart with --rebuild to apply")
+	}
 }
 
 // runOnboarding collects all pending onboarding steps and presents them

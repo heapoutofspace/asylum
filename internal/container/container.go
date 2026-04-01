@@ -42,6 +42,7 @@ type RunOpts struct {
 	CacheDirs  map[string]string // tool name → container path
 	Kits       []*kit.Kit
 	Version    string
+	ConfigHash string // stored as container label for drift detection
 }
 
 // RunArgs assembles docker run arguments via a unified RunArg pipeline.
@@ -69,6 +70,9 @@ func RunArgs(opts RunOpts) ([]string, []kit.RunArg, []kit.Override, error) {
 	core("--hostname", hostname)
 	core("--add-host", "host.docker.internal:host-gateway")
 	core("-w", opts.ProjectDir)
+	if opts.ConfigHash != "" {
+		core("--label", "asylum.config.hash="+opts.ConfigHash)
+	}
 
 	if kit.AnyNeedsMount(opts.Kits) {
 		core("--cap-add", "SYS_ADMIN")

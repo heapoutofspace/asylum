@@ -46,6 +46,26 @@ func InspectLabel(image, label string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
+// ContainerImageID returns the image ID (sha256 digest) of a running container.
+func ContainerImageID(name string) (string, error) {
+	cmd := exec.Command("docker", "inspect", "--format", "{{.Image}}", name)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("inspect container %s: %w", name, err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// ImageID returns the image ID (sha256 digest) for a given image tag.
+func ImageID(tag string) (string, error) {
+	cmd := exec.Command("docker", "inspect", "--format", "{{.Id}}", tag)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("inspect image %s: %w", tag, err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
 func RemoveImages(images ...string) error {
 	if len(images) == 0 {
 		return nil
@@ -164,6 +184,18 @@ func HasOtherSessions(containerName string) bool {
 		return false
 	}
 	return countExecSessions(string(out)) > 1 // 1 = our check command
+}
+
+// CheckOtherSessions is like HasOtherSessions but also reports whether the
+// check succeeded. Callers that need a safe default on error (e.g. assume
+// sessions exist) can use the ok flag.
+func CheckOtherSessions(containerName string) (hasSessions bool, ok bool) {
+	out, err := exec.Command("docker", "exec", containerName,
+		"ps", "-eo", "pid,ppid", "--no-headers").Output()
+	if err != nil {
+		return false, false
+	}
+	return countExecSessions(string(out)) > 1, true
 }
 
 // countExecSessions counts processes with PPID=0 excluding PID 1.

@@ -215,4 +215,22 @@ func TestGenerateProjectDockerfile(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("different packages produce different hashes", func(t *testing.T) {
+		df1, err := generateProjectDockerfile("", map[string][]string{
+			"npm": {"typescript-language-server"},
+		}, "", "testuser", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		df2, err := generateProjectDockerfile("", map[string][]string{
+			"npm": {"eslint"},
+		}, "", "testuser", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if df1 == df2 {
+			t.Error("different packages should produce different Dockerfiles")
+		}
+	})
 }

@@ -2,7 +2,11 @@
 
 ## Unreleased
 
+### Added
+- Stale container detection — asylum now checks if the running container's image matches the current config and restarts automatically when no active sessions exist, or prompts when sessions are active
+
 ### Fixed
+- Kit packages from project config not triggering project image rebuild when container is restarted (#16)
 - Container startup appearing to freeze for 60 seconds when the container crashes immediately — now fails fast with logs
 - Untrusted `mise.toml` in project directory crashing the entrypoint under `set -e` — mise configs are now auto-trusted (container is ephemeral)
 
