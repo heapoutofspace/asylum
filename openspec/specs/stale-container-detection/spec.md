@@ -54,7 +54,7 @@ Asylum SHALL detect when non-image runtime config (volumes, env vars, ports) has
 - **THEN** asylum SHALL skip the config drift check (no warning)
 
 ### Requirement: Config hash stored on container
-The config hash SHALL be stored as a Docker label (`asylum.config.hash`) on the container at creation time. The hash SHALL be computed from a deterministic serialization of runtime-relevant config values: sorted volumes, sorted env key-value pairs, sorted ports, and kit credential settings (sorted by kit name, with explicit ID lists also sorted).
+The config hash SHALL be stored as a Docker label (`asylum.config.hash`) on the container at creation time. The hash SHALL be computed by YAML-serializing the full `Config` struct (after zeroing non-runtime fields: `Version`, `Agent`, `ReleaseChannel`, `Agents`) and taking its SHA256 digest. Order-insensitive lists (`Volumes`, `Ports`) SHALL be sorted before serialization. New config fields SHALL be included in the hash automatically without code changes.
 
 #### Scenario: New container creation
 - **WHEN** a new container is started via `docker run`
@@ -68,9 +68,18 @@ The config hash SHALL be stored as a Docker label (`asylum.config.hash`) on the 
 - **WHEN** a kit's credential config changes (e.g. from `auto` to an explicit list, or explicit IDs are added)
 - **THEN** the config hash SHALL differ from the previously stored label, triggering the stale config warning
 
-#### Scenario: Absent credentials do not contribute
-- **WHEN** a kit has no credentials configured (`credentials` is absent or `false`)
-- **THEN** that kit SHALL contribute nothing to the config hash
+#### Scenario: New field automatically included
+- **WHEN** a new field is added to `Config` or `KitConfig`
+- **AND** that field is set to a non-zero value
+- **THEN** the config hash SHALL differ from a hash where that field is absent, without any changes to the hash function
+
+#### Scenario: Non-runtime fields excluded
+- **WHEN** only `Version`, `Agent`, `ReleaseChannel`, or `Agents` config changes
+- **THEN** the config hash SHALL NOT change
+
+#### Scenario: Volume/port order independent
+- **WHEN** the same volumes or ports are listed in a different order
+- **THEN** the computed hash SHALL be identical
 
 ### Requirement: Unconditional image freshness check
 `EnsureBase` and `EnsureProject` SHALL be called on every `asylum` invocation, regardless of whether a container is currently running. When images are up to date, these calls SHALL return quickly (hash check only, no build).

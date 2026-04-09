@@ -819,13 +819,29 @@ func TestConfigHash(t *testing.T) {
 		}
 	})
 
-	t.Run("absent credentials do not contribute", func(t *testing.T) {
-		withNilCreds := Config{Kits: map[string]*KitConfig{
+	t.Run("nil kit config differs from absent kit", func(t *testing.T) {
+		withKit := Config{Kits: map[string]*KitConfig{
 			"java": nil,
 		}}
-		empty := Config{}
-		if ConfigHash(withNilCreds) != ConfigHash(empty) {
-			t.Error("nil credentials should not affect the hash")
+		without := Config{}
+		if ConfigHash(withKit) == ConfigHash(without) {
+			t.Error("declared kit (even with nil config) should differ from absent kit")
+		}
+	})
+
+	t.Run("non-runtime fields excluded", func(t *testing.T) {
+		base := Config{}
+		varied := Config{Agent: "claude", Version: "2", ReleaseChannel: "dev", Agents: map[string]*AgentConfig{"claude": {Config: "shared"}}}
+		if ConfigHash(base) != ConfigHash(varied) {
+			t.Error("non-runtime fields (Agent, Version, ReleaseChannel, Agents) should not affect hash")
+		}
+	})
+
+	t.Run("new kit config fields included automatically", func(t *testing.T) {
+		without := Config{Kits: map[string]*KitConfig{"java": {}}}
+		with := Config{Kits: map[string]*KitConfig{"java": {Isolation: "project"}}}
+		if ConfigHash(without) == ConfigHash(with) {
+			t.Error("any non-zero config field should affect hash without explicit code changes")
 		}
 	})
 }
